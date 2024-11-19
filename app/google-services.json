@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1076211455636",
+    "project_id": "bu-market-place",
+    "storage_bucket": "bu-market-place.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1076211455636:android:1079e0a270286eab7ec681",
+        "android_client_info": {
+          "package_name": "com.example.bumarketplace"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1076211455636-lj1pu83eii7pgfttmbbo5bfeqkptsrml.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.bumarketplace",
+            "certificate_hash": "12359c89812a03ee52309d0bc935ae7f0af8c09b"
+          }
+        },
+        {
+          "client_id": "1076211455636-21n5bj6u60f4s3rl1akeeadiilsd20eg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRBXi_BzlS8SvF5zyxKU42FB15ht0OzCE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1076211455636-21n5bj6u60f4s3rl1akeeadiilsd20eg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

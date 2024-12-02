@@ -23,10 +23,12 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen // Splash Screen import
-
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
 
 class MainActivity : ComponentActivity() {
 
@@ -102,12 +104,11 @@ fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Add your logo here
-                Image(
-                    painter = painterResource(id = R.drawable.logobu), // Replace 'your_logo' with your image file name
-                    contentDescription = "App Logo",
-                    modifier = Modifier.size(120.dp) // Adjust size as needed
-                )
+//                Image(
+//                    painter = painterResource(id = R.drawable.logobu), // Replace 'your_logo' with your image file name
+//                    contentDescription = "App Logo",
+//                    modifier = Modifier.size(120.dp) // Adjust size as needed
+//                )
                 Spacer(modifier = Modifier.height(16.dp)) // Space between the logo and the text
                 Text(
                     text = "Discover BUMarket",
@@ -120,20 +121,37 @@ fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
                     text = "Connect with BU students to buy and sell",
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center,
-                    color = Color.Gray
+                    // color = Color.Gray
                 )
                 Spacer(modifier = Modifier.height(32.dp))
+
+                // Add your logo here
+                val compositionResult = rememberLottieComposition(
+                    spec = LottieCompositionSpec.RawRes(R.raw.firstpageanimation)
+                )
+
+                // Access the Lottie composition
+                val composition = compositionResult.value
+                LottieAnimation(
+                    modifier = Modifier.size(300.dp),
+                    composition=composition,
+                    iterations=LottieConstants.IterateForever
+                )
+
                 Button(
                     onClick = { onGoogleSignInClicked() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(32.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF570303))
                 ) {
                     Text(
                         text = "Sign-Up with BU Google",
                         color = Color.White,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

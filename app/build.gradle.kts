@@ -71,4 +71,5 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx") // Firebase Authentication
     implementation("com.google.android.gms:play-services-auth") // Google Sign-In
     implementation("androidx.core:core-splashscreen:1.0.1") // SplashScreen
+    implementation("com.airbnb.android:lottie-compose:6.6.0") // Lottie Animations
 }

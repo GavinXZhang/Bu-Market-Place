@@ -1,17 +1,22 @@
 package com.example.bumarketplace
 
 import android.content.Intent
+import android.graphics.Paint.Align
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -23,8 +28,32 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen // Splash Screen import
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+
+// import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material.icons.filled.ShoppingCart
+// import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+
+// import androidx.compose.material.icons.outlined.ShoppingCart
+
 
 
 class MainActivity : ComponentActivity() {
@@ -38,6 +67,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Install splash screen
+        installSplashScreen()
+
         super.onCreate(savedInstanceState)
 
         // Configure Google Sign-In
@@ -51,7 +83,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             BuMarketPlaceTheme {
-                LoginScreen(onGoogleSignInClicked = { signInWithGoogle() })
+                // LoginScreen(onGoogleSignInClicked = { signInWithGoogle() })
+                NavigationBar() // Display NavigationBar for testing
             }
         }
     }
@@ -98,12 +131,11 @@ fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Add your logo here
-                Image(
-                    painter = painterResource(id = R.drawable.logobu), // Replace 'your_logo' with your image file name
-                    contentDescription = "App Logo",
-                    modifier = Modifier.size(120.dp) // Adjust size as needed
-                )
+//                Image(
+//                    painter = painterResource(id = R.drawable.logobu), // Replace 'your_logo' with your image file name
+//                    contentDescription = "App Logo",
+//                    modifier = Modifier.size(120.dp) // Adjust size as needed
+//                )
                 Spacer(modifier = Modifier.height(16.dp)) // Space between the logo and the text
                 Text(
                     text = "Discover BUMarket",
@@ -116,26 +148,124 @@ fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
                     text = "Connect with BU students to buy and sell",
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center,
-                    color = Color.Gray
+                    // color = Color.Gray
                 )
                 Spacer(modifier = Modifier.height(32.dp))
+
+                // Add your logo here
+                val compositionResult = rememberLottieComposition(
+                    spec = LottieCompositionSpec.RawRes(R.raw.firstpageanimation)
+                )
+
+                // Access the Lottie composition
+                val composition = compositionResult.value
+                LottieAnimation(
+                    modifier = Modifier.size(300.dp),
+                    composition=composition,
+                    iterations=LottieConstants.IterateForever
+                )
+
                 Button(
                     onClick = { onGoogleSignInClicked() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(32.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF570303))
                 ) {
                     Text(
                         text = "Sign-Up with BU Google",
                         color = Color.White,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
     )
 }
+
+
+// class for Navigation Items
+data class BottomNavigationItem(
+    val title: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector,
+)
+
+@Composable
+fun NavigationBar() {
+    // Icons for tabs
+    val tabItems = listOf(
+        BottomNavigationItem(
+            title = "Home",
+            selectedIcon = Icons.Filled.Home,
+            unselectedIcon = Icons.Outlined.Home
+        ),
+
+        BottomNavigationItem(
+            title ="Profile",
+            selectedIcon = Icons.Filled.AccountCircle,
+            unselectedIcon = Icons.Outlined.AccountCircle
+        ),
+
+        BottomNavigationItem(
+            title ="Search",
+            selectedIcon = Icons.Filled.Search,
+            unselectedIcon = Icons.Outlined.Search
+        ),
+
+        BottomNavigationItem(
+            title ="Inbox",
+            selectedIcon = Icons.Filled.Inbox,
+            unselectedIcon = Icons.Outlined.Inbox
+        ),
+
+        BottomNavigationItem(
+            title ="Selling",
+            selectedIcon = Icons.Filled.Sell,
+            unselectedIcon = Icons.Outlined.Sell
+        )
+    )
+    // Tab Navigation
+    var selectedTabIndex by remember {
+        mutableIntStateOf(0)
+    }
+    // Navigation Bar Layout
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+        NavigationBar(
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            tabItems.forEachIndexed { index, bottomNavigationItem ->
+                NavigationBarItem(
+                    selected = index == selectedTabIndex,
+                    onClick = { selectedTabIndex = index },
+                    label = {
+                        Text(text = bottomNavigationItem.title)
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = if (index == selectedTabIndex) {
+                                bottomNavigationItem.selectedIcon
+                            } else bottomNavigationItem.unselectedIcon,
+                            contentDescription = bottomNavigationItem.title
+                        )
+                    },
+                    alwaysShowLabel = true // Ensures labels are always visible
+                )
+            }
+        }
+    }
+}
+
+
+
+
+
 
 @Preview(showBackground = true)
 @Composable

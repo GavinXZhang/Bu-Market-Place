@@ -1,7 +1,6 @@
 package com.example.bumarketplace
 
 import android.content.Intent
-import android.graphics.Paint.Align
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
-import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,14 +33,12 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 
-// import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sell
-import androidx.compose.material.icons.filled.ShoppingCart
-// import androidx.compose.material.icons.outlined.AccountCircle
+
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Search
@@ -53,6 +49,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 
 // import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 
 
 
@@ -82,11 +83,22 @@ class MainActivity : ComponentActivity() {
         firebaseAuth = FirebaseAuth.getInstance()
 
         setContent {
+            val navController = rememberNavController()
+
             BuMarketPlaceTheme {
-                // LoginScreen(onGoogleSignInClicked = { signInWithGoogle() })
-                NavigationBar() // Display NavigationBar for testing
+                Scaffold(
+                    bottomBar = {
+                        NavigationBar(navController = navController)
+                    }
+                ) { paddingValues ->
+                    BottomNavigationGraph(
+                        navController = navController,
+                        paddingValues = paddingValues
+                    )
+                }
             }
         }
+
     }
 
     private fun signInWithGoogle() {
@@ -195,7 +207,28 @@ data class BottomNavigationItem(
 )
 
 @Composable
-fun NavigationBar() {
+fun BottomNavigationGraph(
+    navController: NavHostController,
+    paddingValues: PaddingValues
+) {
+    Box(modifier = Modifier.padding(paddingValues)) {
+        NavHost(
+            navController = navController,
+            startDestination = "home"
+        ) {
+            composable("home") { HomeScreen() }
+            composable("profile") { ProfileScreen() }
+            composable("search") { SearchScreen() }
+            composable("inbox") { InboxScreen() }
+            composable("selling") { SellingScreen() }
+        }
+    }
+}
+
+
+
+@Composable
+fun NavigationBar(navController: NavController) {
     // Icons for tabs
     val tabItems = listOf(
         BottomNavigationItem(
@@ -229,39 +262,70 @@ fun NavigationBar() {
         )
     )
     // Tab Navigation
-    var selectedTabIndex by remember {
-        mutableIntStateOf(0)
-    }
-    // Navigation Bar Layout
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
-        NavigationBar(
-            modifier = Modifier.align(Alignment.BottomCenter)
-        ) {
-            tabItems.forEachIndexed { index, bottomNavigationItem ->
-                NavigationBarItem(
-                    selected = index == selectedTabIndex,
-                    onClick = { selectedTabIndex = index },
-                    label = {
-                        Text(text = bottomNavigationItem.title)
-                    },
-                    icon = {
-                        Icon(
-                            imageVector = if (index == selectedTabIndex) {
-                                bottomNavigationItem.selectedIcon
-                            } else bottomNavigationItem.unselectedIcon,
-                            contentDescription = bottomNavigationItem.title
-                        )
-                    },
-                    alwaysShowLabel = true // Ensures labels are always visible
-                )
-            }
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val routes = listOf("home", "profile", "search", "inbox", "selling")
+
+    androidx.compose.material3.NavigationBar {
+        tabItems.forEachIndexed { index, bottomNavigationItem ->
+            NavigationBarItem(
+                selected = index == selectedTabIndex,
+                onClick = {
+                    selectedTabIndex = index
+                    navController.navigate(routes[index])
+                },
+                label = {
+                    Text(text = bottomNavigationItem.title)
+                },
+                icon = {
+                    Icon(
+                        imageVector = if (index == selectedTabIndex) {
+                            bottomNavigationItem.selectedIcon
+                        } else {
+                            bottomNavigationItem.unselectedIcon
+                        },
+                        contentDescription = bottomNavigationItem.title
+                    )
+                },
+                alwaysShowLabel = true
+            )
         }
     }
 }
 
+@Composable
+fun HomeScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Home Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun ProfileScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Profile Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun SearchScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Search Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun InboxScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Inbox Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun SellingScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Selling Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    }
+}
 
 
 

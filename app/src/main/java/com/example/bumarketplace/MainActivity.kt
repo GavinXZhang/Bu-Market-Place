@@ -1,17 +1,22 @@
 package com.example.bumarketplace
 
 import android.content.Intent
+import android.graphics.Paint.Align
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,6 +34,27 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
+
+// import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sell
+import androidx.compose.material.icons.filled.ShoppingCart
+// import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Inbox
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+
+// import androidx.compose.material.icons.outlined.ShoppingCart
+
+
 
 class MainActivity : ComponentActivity() {
 
@@ -57,7 +83,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             BuMarketPlaceTheme {
-                LoginScreen(onGoogleSignInClicked = { signInWithGoogle() })
+                // LoginScreen(onGoogleSignInClicked = { signInWithGoogle() })
+                NavigationBar() // Display NavigationBar for testing
             }
         }
     }
@@ -158,6 +185,92 @@ fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
         }
     )
 }
+
+
+// class for Navigation Items
+data class BottomNavigationItem(
+    val title: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector,
+)
+
+@Composable
+fun NavigationBar() {
+    // Icons for tabs
+    val tabItems = listOf(
+        BottomNavigationItem(
+            title = "Home",
+            selectedIcon = Icons.Outlined.Home,
+            unselectedIcon = Icons.Filled.Home
+        ),
+
+        BottomNavigationItem(
+            title ="Profile",
+            selectedIcon = Icons.Outlined.AccountCircle,
+            unselectedIcon = Icons.Filled.AccountCircle
+        ),
+
+        BottomNavigationItem(
+            title ="Search",
+            selectedIcon = Icons.Outlined.Search,
+            unselectedIcon = Icons.Filled.Search
+        ),
+
+        BottomNavigationItem(
+            title ="Inbox",
+            selectedIcon = Icons.Outlined.Inbox,
+            unselectedIcon = Icons.Filled.Inbox
+        ),
+
+        BottomNavigationItem(
+            title ="Selling",
+            selectedIcon = Icons.Outlined.Sell,
+            unselectedIcon = Icons.Filled.Sell
+        )
+    )
+    // Tab Navigation
+    var selectedTabIndex by remember {
+        mutableIntStateOf(0)
+    }
+    Box (
+        modifier = Modifier
+                .fillMaxSize(),
+    ) {
+        TabRow(selectedTabIndex = selectedTabIndex,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+            ) {
+            tabItems.forEachIndexed { index, bottomNavigationItem ->
+                Tab(
+                    selected = index == selectedTabIndex,
+                    onClick = {
+                        selectedTabIndex = index
+                    },
+                    text = {
+                        Text(text = bottomNavigationItem.title)
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = if (index == selectedTabIndex) {
+                                bottomNavigationItem.selectedIcon
+                            } else bottomNavigationItem.unselectedIcon,
+                            contentDescription = bottomNavigationItem.title
+                        )
+                    }
+                )
+            }
+
+        }
+
+
+    }
+
+}
+
+
+
+
+
 
 @Preview(showBackground = true)
 @Composable

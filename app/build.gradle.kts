@@ -73,4 +73,5 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1") // SplashScreen
     implementation("com.airbnb.android:lottie-compose:6.6.0") // Lottie Animations
     implementation("androidx.compose.material:material-icons-extended:1.7.5") // Extended material icons
+    implementation("androidx.navigation:navigation-compose:2.7.3") // Navigation
 }

@@ -200,53 +200,51 @@ fun NavigationBar() {
     val tabItems = listOf(
         BottomNavigationItem(
             title = "Home",
-            selectedIcon = Icons.Outlined.Home,
-            unselectedIcon = Icons.Filled.Home
+            selectedIcon = Icons.Filled.Home,
+            unselectedIcon = Icons.Outlined.Home
         ),
 
         BottomNavigationItem(
             title ="Profile",
-            selectedIcon = Icons.Outlined.AccountCircle,
-            unselectedIcon = Icons.Filled.AccountCircle
+            selectedIcon = Icons.Filled.AccountCircle,
+            unselectedIcon = Icons.Outlined.AccountCircle
         ),
 
         BottomNavigationItem(
             title ="Search",
-            selectedIcon = Icons.Outlined.Search,
-            unselectedIcon = Icons.Filled.Search
+            selectedIcon = Icons.Filled.Search,
+            unselectedIcon = Icons.Outlined.Search
         ),
 
         BottomNavigationItem(
             title ="Inbox",
-            selectedIcon = Icons.Outlined.Inbox,
-            unselectedIcon = Icons.Filled.Inbox
+            selectedIcon = Icons.Filled.Inbox,
+            unselectedIcon = Icons.Outlined.Inbox
         ),
 
         BottomNavigationItem(
             title ="Selling",
-            selectedIcon = Icons.Outlined.Sell,
-            unselectedIcon = Icons.Filled.Sell
+            selectedIcon = Icons.Filled.Sell,
+            unselectedIcon = Icons.Outlined.Sell
         )
     )
     // Tab Navigation
     var selectedTabIndex by remember {
         mutableIntStateOf(0)
     }
-    Box (
+    // Navigation Bar Layout
+    Box(
         modifier = Modifier
-                .fillMaxSize(),
+            .fillMaxSize()
     ) {
-        TabRow(selectedTabIndex = selectedTabIndex,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-            ) {
+        NavigationBar(
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
             tabItems.forEachIndexed { index, bottomNavigationItem ->
-                Tab(
+                NavigationBarItem(
                     selected = index == selectedTabIndex,
-                    onClick = {
-                        selectedTabIndex = index
-                    },
-                    text = {
+                    onClick = { selectedTabIndex = index },
+                    label = {
                         Text(text = bottomNavigationItem.title)
                     },
                     icon = {
@@ -256,15 +254,12 @@ fun NavigationBar() {
                             } else bottomNavigationItem.unselectedIcon,
                             contentDescription = bottomNavigationItem.title
                         )
-                    }
+                    },
+                    alwaysShowLabel = true // Ensures labels are always visible
                 )
             }
-
         }
-
-
     }
-
 }
 
 

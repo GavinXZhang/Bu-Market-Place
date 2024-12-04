@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -45,8 +46,10 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 
 // import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.navigation.NavController
@@ -63,72 +66,82 @@ class MainActivity : ComponentActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
 
     companion object {
-        private const val RC_SIGN_IN = 9001
         private const val TAG = "GoogleSignIn"
     }
 
+    private val isLoggedIn = mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Install splash screen
+        super.onCreate(savedInstanceState)
         installSplashScreen()
 
-        super.onCreate(savedInstanceState)
+        firebaseAuth = FirebaseAuth.getInstance()
 
         // Configure Google Sign-In
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(getString(R.string.default_web_client_id)) // From google-services.json
+            .requestIdToken(getString(R.string.default_web_client_id)) // Ensure this ID is correct
             .requestEmail()
             .build()
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
-        firebaseAuth = FirebaseAuth.getInstance()
+
+        // Listen for authentication state changes
+        firebaseAuth.addAuthStateListener { auth ->
+            val user = auth.currentUser
+            isLoggedIn.value = user != null
+        }
 
         setContent {
             val navController = rememberNavController()
 
             BuMarketPlaceTheme {
-                Scaffold(
-                    bottomBar = {
-                        NavigationBar(navController = navController)
+                if (isLoggedIn.value) {
+                    Scaffold(
+                        bottomBar = {
+                            NavigationBar(navController = navController)
+                        }
+                    ) { paddingValues ->
+                        BottomNavigationGraph(
+                            navController = navController,
+                            paddingValues = paddingValues,
+                            firebaseAuth = firebaseAuth
+                        )
                     }
-                ) { paddingValues ->
-                    BottomNavigationGraph(
-                        navController = navController,
-                        paddingValues = paddingValues
-                    )
+                } else {
+                    LoginScreen(onGoogleSignInClicked = { signInWithGoogle() })
                 }
             }
         }
+    }
 
+    private val signInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val data = result.data
+        val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+        try {
+            val account = task.getResult(Exception::class.java)
+            val credential = GoogleAuthProvider.getCredential(account?.idToken, null)
+            firebaseAuth.signInWithCredential(credential)
+                .addOnCompleteListener(this) { authTask ->
+                    if (authTask.isSuccessful) {
+                        Log.d(TAG, "signInWithCredential:success")
+                        // The AuthStateListener will handle the UI update
+                    } else {
+                        Log.w(TAG, "signInWithCredential:failure", authTask.exception)
+                    }
+                }
+        } catch (e: Exception) {
+            Log.w(TAG, "Google sign in failed", e)
+        }
     }
 
     private fun signInWithGoogle() {
         val signInIntent = googleSignInClient.signInIntent
-        startActivityForResult(signInIntent, RC_SIGN_IN)
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == RC_SIGN_IN) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            try {
-                val account = task.getResult(Exception::class.java)
-                val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-                firebaseAuth.signInWithCredential(credential)
-                    .addOnCompleteListener(this) { authTask ->
-                        if (authTask.isSuccessful) {
-                            Log.d(TAG, "signInWithCredential:success")
-                            val user = firebaseAuth.currentUser
-                            // Navigate to the main part of your app
-                        } else {
-                            Log.w(TAG, "signInWithCredential:failure", authTask.exception)
-                        }
-                    }
-            } catch (e: Exception) {
-                Log.w(TAG, "Google sign in failed", e)
-            }
-        }
+        signInLauncher.launch(signInIntent)
     }
 }
+
 
 @Composable
 fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
@@ -209,21 +222,23 @@ data class BottomNavigationItem(
 @Composable
 fun BottomNavigationGraph(
     navController: NavHostController,
-    paddingValues: PaddingValues
+    paddingValues: PaddingValues,
+    firebaseAuth: FirebaseAuth
 ) {
     Box(modifier = Modifier.padding(paddingValues)) {
         NavHost(
             navController = navController,
             startDestination = "home"
         ) {
-            composable("home") { HomeScreen() }
-            composable("profile") { ProfileScreen() }
+            composable("home") { HomeScreen(firebaseAuth) }
+            composable("profile") { ProfileScreen(firebaseAuth) }
             composable("search") { SearchScreen() }
             composable("inbox") { InboxScreen() }
             composable("selling") { SellingScreen() }
         }
     }
 }
+
 
 
 
@@ -293,18 +308,51 @@ fun NavigationBar(navController: NavController) {
 }
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(firebaseAuth: FirebaseAuth) {
+    val user = firebaseAuth.currentUser
+    val displayName = user?.displayName ?: "User"
+
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Home Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("Welcome, $displayName!", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Home Screen Content Goes Here", fontSize = 18.sp)
+        }
     }
 }
 
+
 @Composable
-fun ProfileScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+fun ProfileScreen(firebaseAuth: FirebaseAuth) {
+    val user = firebaseAuth.currentUser
+    val displayName = user?.displayName ?: "User"
+
+    // Get the context in a @Composable scope
+    val context = LocalContext.current
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
         Text("Profile Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Welcome, $displayName!", fontSize = 20.sp)
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = {
+                firebaseAuth.signOut()
+                // Use the context retrieved in a @Composable scope
+                GoogleSignIn.getClient(context, GoogleSignInOptions.DEFAULT_SIGN_IN).signOut()
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+        ) {
+            Text("Sign Out", color = Color.White)
+        }
     }
 }
+
+
 
 @Composable
 fun SearchScreen() {

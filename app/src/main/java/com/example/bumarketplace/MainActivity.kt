@@ -96,22 +96,23 @@ class MainActivity : ComponentActivity() {
                 ) { paddingValues ->
                     NavHost(
                         navController = navController,
-                        startDestination = if (firebaseAuth.currentUser != null) "home" else "login"
+                        startDestination = if (firebaseAuth.currentUser != null) "home/{userName}" else "login"
                     ) {
                         composable("login") {
                             LoginScreen(
                                 onGoogleSignInClicked = { signInWithGoogle() }
                             )
                         }
-                        composable("home") {
+                        composable("home/{userName}") { backStackEntry ->
+                            val userName = backStackEntry.arguments?.getString("userName") ?: "Guest"
                             HomeScreen(
-                                userName = "Gavin",
-                                onLogoutClicked = { logout() } // Directly pass logout()
+                                userName = userName,
+                                onLogoutClicked = { logout() }
                             )
                         }
-                        composable("profile") { ProfileScreen() } // Ensure ProfileScreen is defined
-                        composable("search") { SearchScreen() }   // Ensure SearchScreen is defined
-                        composable("inbox") { InboxScreen() }     // Ensure InboxScreen is defined
+                        composable("profile") { ProfileScreen() }
+                        composable("search") { SearchScreen() }
+                        composable("inbox") { InboxScreen() }
                         composable("selling") { SellingScreen() }
                     }
                 }
@@ -135,7 +136,9 @@ class MainActivity : ComponentActivity() {
                     .addOnCompleteListener(this) { authTask ->
                         if (authTask.isSuccessful) {
                             Log.d(TAG, "signInWithCredential:success")
-                            navController.navigate("home")
+                            val user = firebaseAuth.currentUser
+                            val userName = user?.displayName ?: "Guest" // Get user name
+                            navController.navigate("home/$userName") // Pass user name to HomeScreen
                         } else {
                             Log.w(TAG, "signInWithCredential:failure", authTask.exception)
                         }

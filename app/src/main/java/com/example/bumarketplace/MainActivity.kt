@@ -535,6 +535,9 @@ fun FullSellingScreen() {
         // Shipping Section
         AddressSection()
 
+        // Return Section
+        ReturnSection()
+
 
         // Preferences Section
         SectionHeader(title = "Preferences")
@@ -910,6 +913,64 @@ fun AddressSection() {
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReturnSection() {
+    // List of predefined options
+    val options = listOf("Yes Returns", "No Returns")
+    var expanded by remember { mutableStateOf(false) } // Dropdown state
+    var selectedOption by remember { mutableStateOf(options[0]) } // Default selection
+
+    Column(modifier = Modifier.padding(8.dp)) {
+        // Section Header
+        SectionHeader(title = "30 Day Return Policy")
+
+        // Exposed Dropdown Menu
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            // Dropdown Trigger
+            TextField(
+                value = selectedOption,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Select Return Policy") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+            )
+
+            // Dropdown Options
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            selectedOption = option // Update the selected option
+                            expanded = false // Close the menu
+                        }
+                    )
+                }
+            }
+        }
+
+        // Display selected option (optional)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Selected Policy: $selectedOption",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }
 

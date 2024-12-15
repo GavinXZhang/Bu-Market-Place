@@ -6,7 +6,9 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material3.*
@@ -51,12 +53,23 @@ import androidx.compose.runtime.setValue
 // import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.navigation.compose.currentBackStackEntryAsState
 
+
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.foundation.background
 
+// Everything here is for camera implmentation
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.mutableStateOf
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.compose.foundation.Image
+import coil.compose.rememberImagePainter
+import androidx.compose.material.icons.filled.CameraAlt
+import coil.compose.rememberAsyncImagePainter
 
 
 class MainActivity : ComponentActivity() {
@@ -378,30 +391,156 @@ fun SellingScreen(navController: NavController) {
 
 @Composable
 fun FullSellingScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.TopCenter
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Define the photo picker activity result contract
+    val pickImage = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+        onResult = { uri ->
+            // Handle the picked image URI
+            selectedImageUri = uri
+        }
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        // Photo Section
+        SectionHeader(title = "Photos")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Full Selling Screen",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
+            Box(
+                modifier = Modifier
+                    .size(150.dp)
+                    .background(Color.Gray, shape = RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                // Check if an image is selected
+                selectedImageUri?.let {
+                    // Show the selected image
+                    Image(painter = rememberAsyncImagePainter(it), contentDescription = "Selected Image")
+                }
+
+                // Button to pick a photo
+                IconButton(
+                    onClick = { pickImage.launch("image/*") } // Launch photo picker
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CameraAlt,
+                        contentDescription = "Pick Image",
+                        tint = Color.White
+                    )
+                }
+            }
+        }
+
+        // Title Section
+        SectionHeader(title = "Title")
+        TextField(
+            value = "Mario Party 9 (Nintendo Wii, 2012)",
+            onValueChange = {},
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Category Section
+        SectionHeader(title = "Category")
+        Text(
+            text = "Video Games & Consoles > Video Games",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(8.dp)
+        )
+
+        // Condition Section
+        SectionHeader(title = "Condition")
+        Text(
+            text = "Acceptable",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(8.dp)
+        )
+
+        // Item Specifics Section
+        SectionHeader(title = "Item specifics")
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text("Game Name: Mario Party 9")
+            Text("Platform: Nintendo Wii")
+            Text("Publisher: Nintendo")
+            Text("Genre: Action & Adventure")
+        }
+
+        // Description Section
+        SectionHeader(title = "Description")
+        TextField(
+            value = "Mario Party 9 (Nintendo Wii, 2012)",
+            onValueChange = {},
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+        )
+
+        // Pricing Section
+        SectionHeader(title = "Pricing")
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(text = "Price: ", modifier = Modifier.weight(1f))
+            TextField(
+                value = "$37.97",
+                onValueChange = {},
+                modifier = Modifier.width(100.dp)
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            // Add UI for listing an item (e.g., image upload, description input)
-            Text(
-                text = "Here you can add details for your item.",
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center
-            )
+        }
+
+        // Shipping Section
+        SectionHeader(title = "Shipping")
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text("USPS Ground Advantage")
+            Text("Buyer pays $4.21 - $5.03")
+            Text("2-5 business days")
+        }
+
+        // Preferences Section
+        SectionHeader(title = "Preferences")
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text("Payment Methods: Payments managed by eBay")
+            Text("Handling Time: 2 business days")
+            Text("Item Location: United States, 10026 (New York, New York)")
+            Text("Return Policy: No returns accepted unless not as described")
+        }
+
+        // Final Buttons
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = { /* Handle listing item */ },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("List your item")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = { /* Handle preview */ },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+        ) {
+            Text("Preview")
         }
     }
 }
+
+@Composable
+fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        modifier = Modifier.padding(vertical = 8.dp)
+    )
+}
+
+
 
 
 

@@ -74,7 +74,10 @@ import coil.compose.rememberAsyncImagePainter
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 
 
 class MainActivity : ComponentActivity() {
@@ -512,70 +515,26 @@ fun FullSellingScreen() {
             }
         }
 
-        // Title Section
-        SectionHeader(title = "Title")
-        TextField(
-            value = "Mario Party 9 (Nintendo Wii, 2012)",
-            onValueChange = {},
-            modifier = Modifier.fillMaxWidth()
-        )
+        TitleSection()
 
         // Category Section
-        SectionHeader(title = "Category")
-        Text(
-            text = "Video Games & Consoles > Video Games",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(8.dp)
-        )
+        CategorySection()
 
         // Condition Section
-        SectionHeader(title = "Condition")
-        Text(
-            text = "Acceptable",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(8.dp)
-        )
+        ConditionSection()
 
-        // Item Specifics Section
-        SectionHeader(title = "Item specifics")
-        Column(modifier = Modifier.padding(8.dp)) {
-            Text("Game Name: Mario Party 9")
-            Text("Platform: Nintendo Wii")
-            Text("Publisher: Nintendo")
-            Text("Genre: Action & Adventure")
-        }
+        // Item Quantity Section
+        QuantitySection()
 
         // Description Section
-        SectionHeader(title = "Description")
-        TextField(
-            value = "Mario Party 9 (Nintendo Wii, 2012)",
-            onValueChange = {},
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(120.dp)
-        )
+        DescriptionSection()
 
         // Pricing Section
-        SectionHeader(title = "Pricing")
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = "Price: ", modifier = Modifier.weight(1f))
-            TextField(
-                value = "$37.97",
-                onValueChange = {},
-                modifier = Modifier.width(100.dp)
-            )
-        }
+        PricingSection()
 
         // Shipping Section
-        SectionHeader(title = "Shipping")
-        Column(modifier = Modifier.padding(8.dp)) {
-            Text("USPS Ground Advantage")
-            Text("Buyer pays $4.21 - $5.03")
-            Text("2-5 business days")
-        }
+        AddressSection()
+
 
         // Preferences Section
         SectionHeader(title = "Preferences")
@@ -605,6 +564,354 @@ fun FullSellingScreen() {
     }
 }
 
+
+@Composable
+fun TitleSection() {
+    var titleText by remember { mutableStateOf("") } // Blank initial value
+    val maxChars = 80 // Character limit
+
+    Column(modifier = Modifier.padding(8.dp)) {
+        // Section Header
+        SectionHeader(title = "Title")
+
+        // Text Field for the title
+        TextField(
+            value = titleText,
+            onValueChange = {
+                if (it.length <= maxChars) { // Limit the input to 80 characters
+                    titleText = it
+                }
+            },
+            placeholder = { Text("Enter a title for your item") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        // Character Count Display
+        Text(
+            text = "${titleText.length} / $maxChars characters",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (titleText.length >= maxChars) Color.Red else Color.Gray,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class) // Needed if you want to do ExposedDropdownMenuBox
+@Composable
+fun CategorySection() {
+    val options = listOf("Course Materials & Supplies", "Student Life & Misc.") // List of options
+    var expanded by remember { mutableStateOf(false) } // State to manage menu visibility
+    var selectedOption by remember { mutableStateOf(options[0]) } // Default selected option
+
+    Column(modifier = Modifier.padding(8.dp)) {
+        // Section Header
+        SectionHeader(title = "Category")
+
+        // Exposed Dropdown Menu
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            TextField(
+                value = selectedOption,
+                onValueChange = {},
+                readOnly = true, // Prevent manual input
+                label = { Text("Select Category") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            selectedOption = option // Update the selected option
+                            expanded = false // Close the menu
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class) // Needed if you want to do ExposedDropdownMenuBox
+@Composable
+fun ConditionSection() {
+    val options = listOf("Brand New ", "Like New", "Very Good", "Good", "Acceptable" ) // List of options
+    var expanded by remember { mutableStateOf(false) } // State to manage menu visibility
+    var selectedOption by remember { mutableStateOf(options[0]) } // Default selected option
+
+    Column(modifier = Modifier.padding(8.dp)) {
+        // Section Header
+        SectionHeader(title = "Condition")
+
+        // Exposed Dropdown Menu
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            TextField(
+                value = selectedOption,
+                onValueChange = {},
+                readOnly = true, // Prevent manual input
+                label = { Text("Select Condition") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+            )
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            selectedOption = option // Update the selected option
+                            expanded = false // Close the menu
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun QuantitySection() {
+    var quantity by remember { mutableStateOf("") } // State to hold the input value
+    var isError by remember { mutableStateOf(false) } // State to manage input validation error
+
+    Column(modifier = Modifier.padding(8.dp)) {
+        // Section Header
+        SectionHeader(title = "Quantity")
+
+        // Input Field for Quantity
+        OutlinedTextField(
+            value = quantity,
+            onValueChange = { newValue ->
+                // Check if the input is a valid positive integer
+                if (newValue.all { it.isDigit() }) {
+                    quantity = newValue
+                    isError = false
+                } else {
+                    isError = true // Mark as error for invalid input
+                }
+            },
+            label = { Text("Enter Quantity") },
+            keyboardOptions = KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Number, // Show number-only keyboard
+                imeAction = ImeAction.Done
+            ),
+            isError = isError, // Highlight the field if there's an error
+            singleLine = true,
+            supportingText = {
+                if (isError) {
+                    Text("Please enter a valid positive whole number.", color = Color.Red)
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Display the currently entered quantity (optional)
+        if (quantity.isNotEmpty() && !isError) {
+            Text(
+                text = "Current Quantity: $quantity",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun DescriptionSection() {
+    val maxChars = 500 // Maximum character limit
+    var description by remember { mutableStateOf("") } // State to store the input text
+    val remainingChars = maxChars - description.length // Remaining characters
+
+    Column(modifier = Modifier.padding(8.dp)) {
+        // Section Header
+        SectionHeader(title = "Description")
+
+        // TextField with character limit
+        OutlinedTextField(
+            value = description,
+            onValueChange = { newValue ->
+                if (newValue.length <= maxChars) { // Ensure input stays within the limit
+                    description = newValue
+                }
+            },
+            label = { Text("Enter description (max $maxChars characters)") },
+            singleLine = false, // Allows multiline input
+            maxLines = 5, // Set maximum visible lines
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp) // Adjust height for better input space
+        )
+
+        // Character count feedback
+        Text(
+            text = "Remaining characters: $remainingChars",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (remainingChars < 0) Color.Red else Color.Gray,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+}
+
+@Composable
+fun PricingSection() {
+    var price by remember { mutableStateOf("") } // State to hold the input value
+    var isError by remember { mutableStateOf(false) } // State to handle validation errors
+
+    Column(modifier = Modifier.padding(8.dp)) {
+        // Section Header
+        SectionHeader(title = "Pricing")
+
+        // Row for "Price" label and input field
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Price: ",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+
+            OutlinedTextField(
+                value = price,
+                onValueChange = { newValue ->
+                    if (newValue.all { it.isDigit() }) {
+                        // Accept only digits (no decimals, letters, or negatives)
+                        price = newValue
+                        isError = false
+                    } else if (newValue.isEmpty()) {
+                        price = ""
+                        isError = false
+                    } else {
+                        isError = true
+                    }
+                },
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    keyboardType = KeyboardType.Number, // Show number-only keyboard
+                    imeAction = ImeAction.Done
+                ),
+                isError = isError,
+                label = { Text("Enter Price") },
+                singleLine = true,
+                modifier = Modifier.width(150.dp)
+            )
+        }
+
+        // Error message for invalid input
+        if (isError) {
+            Text(
+                text = "Please enter a valid positive whole number.",
+                color = Color.Red,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddressSection() {
+    // List of predefined options
+    val options = listOf(
+        "Warren Towers", "Bay State Road", "South Campus",
+        "Myles", "Hojo", "The Towers", "StuVi1", "StuVi2", "Off Campus"
+    )
+    var expanded by remember { mutableStateOf(false) } // Dropdown state
+    var selectedOption by remember { mutableStateOf(options[0]) } // Default selection
+
+    // State for the "Off Campus" address input
+    var offCampusAddress by remember { mutableStateOf("") }
+    val characterLimit = 50
+
+    Column(modifier = Modifier.padding(8.dp)) {
+        // Section Header
+        SectionHeader(title = "Address")
+
+        // Exposed Dropdown Menu
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            // Dropdown Trigger
+            TextField(
+                value = selectedOption,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Select Address") },
+                trailingIcon = {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor()
+            )
+
+            // Dropdown Options
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            selectedOption = option // Update the selected option
+                            if (option != "Off Campus") offCampusAddress = "" // Reset Off Campus input
+                            expanded = false // Close the menu
+                        }
+                    )
+                }
+            }
+        }
+
+        // Show TextField for "Off Campus" selection
+        if (selectedOption == "Off Campus") {
+            Spacer(modifier = Modifier.height(8.dp)) // Add spacing
+            TextField(
+                value = offCampusAddress,
+                onValueChange = { newInput ->
+                    // Ensure input doesn't exceed character limit
+                    if (newInput.length <= characterLimit) {
+                        offCampusAddress = newInput
+                    }
+                },
+                label = { Text("Enter Off Campus Address") },
+                placeholder = { Text("e.g., 123 Main St, Boston") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            // Character count indicator
+            Text(
+                text = "${offCampusAddress.length} / $characterLimit characters",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+    }
+}
 
 
 @Composable

@@ -67,9 +67,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.mutableStateOf
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.lazy.LazyRow
 import coil.compose.rememberImagePainter
 import androidx.compose.material.icons.filled.CameraAlt
 import coil.compose.rememberAsyncImagePainter
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Close
 
 
 class MainActivity : ComponentActivity() {
@@ -391,14 +396,23 @@ fun SellingScreen(navController: NavController) {
 
 @Composable
 fun FullSellingScreen() {
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val maxImages = 5 // Set the maximum number of images
+    var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var showWarning by remember { mutableStateOf(false) } // Warning for max limit
 
-    // Define the photo picker activity result contract
-    val pickImage = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-        onResult = { uri ->
-            // Handle the picked image URI
-            selectedImageUri = uri
+    // Define the photo picker activity result contract for multiple images
+    val pickImages = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents(),
+        onResult = { uris ->
+            val totalImages = selectedImageUris.size + uris.size
+            if (totalImages <= maxImages) {
+                selectedImageUris = selectedImageUris + uris
+                showWarning = false
+            } else {
+                val remainingSlots = maxImages - selectedImageUris.size
+                selectedImageUris = selectedImageUris + uris.take(remainingSlots)
+                showWarning = true
+            }
         }
     )
 
@@ -410,32 +424,89 @@ fun FullSellingScreen() {
     ) {
         // Photo Section
         SectionHeader(title = "Photos")
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(150.dp)
-                    .background(Color.Gray, shape = RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                // Check if an image is selected
-                selectedImageUri?.let {
-                    // Show the selected image
-                    Image(painter = rememberAsyncImagePainter(it), contentDescription = "Selected Image")
-                }
+        Column {
+            if (showWarning) {
+                Text(
+                    text = "You can only select up to $maxImages images.",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
 
-                // Button to pick a photo
-                IconButton(
-                    onClick = { pickImage.launch("image/*") } // Launch photo picker
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.CameraAlt,
-                        contentDescription = "Pick Image",
-                        tint = Color.White
+            LazyRow {
+                itemsIndexed(selectedImageUris) { index, uri ->
+                    Box(
+                        modifier = Modifier
+                            .size(300.dp)
+                            .padding(end = 8.dp)
+                            .background(Color.Gray, shape = RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.BottomEnd
+                    ) {
+                        Image(
+                            painter = rememberAsyncImagePainter(uri),
+                            contentDescription = "Selected Image",
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        // "X" Button for removing the image
+                        IconButton(
+                            onClick = {
+                                selectedImageUris = selectedImageUris.toMutableList().apply {
+                                    removeAt(index)
+                                }
+                            },
+                            modifier = Modifier
+                                .size(24.dp)
+                                .align(Alignment.TopEnd)
+                                .background(Color.Red, shape = CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Remove Image",
+                                tint = Color.White
+                            )
+                        }
+
+                        // Number indicator for the image
+                        Text(
+                            text = "${index + 1}",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .background(
+                                    Color.Black.copy(alpha = 0.6f),
+                                    RoundedCornerShape(4.dp)
+                                )
+                                .padding(4.dp)
+                                .align(Alignment.BottomEnd)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                if (selectedImageUris.size < maxImages) {
+                    IconButton(onClick = { pickImages.launch("image/*") }) {
+                        Icon(
+                            imageVector = Icons.Filled.CameraAlt,
+                            contentDescription = "Pick Images",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(Color.DarkGray, shape = RoundedCornerShape(8.dp))
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "Image limit reached.",
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
@@ -486,7 +557,10 @@ fun FullSellingScreen() {
 
         // Pricing Section
         SectionHeader(title = "Pricing")
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(text = "Price: ", modifier = Modifier.weight(1f))
             TextField(
                 value = "$37.97",
@@ -530,6 +604,8 @@ fun FullSellingScreen() {
         }
     }
 }
+
+
 
 @Composable
 fun SectionHeader(title: String) {

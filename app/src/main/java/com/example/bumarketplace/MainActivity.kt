@@ -113,7 +113,8 @@ class MainActivity : ComponentActivity() {
                         composable("profile") { ProfileScreen() }
                         composable("search") { SearchScreen() }
                         composable("inbox") { InboxScreen() }
-                        composable("selling") { SellingScreen() }
+                        composable("selling") { SellingScreen(navController) }
+                        composable("full_selling_screen") { FullSellingScreen() }
                     }
                 }
             }
@@ -163,148 +164,148 @@ class MainActivity : ComponentActivity() {
 
 
 
-    @Composable
-    fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            content = { paddingValues ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Discover BUMarket",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Connect with BU students to buy and sell",
-                        fontSize = 16.sp,
-                        textAlign = TextAlign.Center,
-                    )
-                    Spacer(modifier = Modifier.height(32.dp))
+@Composable
+fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        content = { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Discover BUMarket",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Connect with BU students to buy and sell",
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(32.dp))
 
-                    Button(
-                        onClick = { onGoogleSignInClicked() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(32.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF570303))
-                    ) {
-                        Text(
-                            text = "Sign-Up with BU Google",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontFamily = FontFamily.SansSerif,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                Button(
+                    onClick = { onGoogleSignInClicked() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(32.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF570303))
+                ) {
+                    Text(
+                        text = "Sign-Up with BU Google",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
-        )
-    }
-
-
-    // class for Navigation Items
-    data class BottomNavigationItem(
-        val title: String,
-        val selectedIcon: ImageVector,
-        val unselectedIcon: ImageVector,
+        }
     )
+}
 
-    @Composable
-    fun BottomNavigationGraph(
-        navController: NavHostController,
-        paddingValues: PaddingValues
-    ) {
-        Box(modifier = Modifier.padding(paddingValues)) {
-            NavHost(
-                navController = navController,
-                startDestination = "home"
-            ) {
-                composable("home") { HomeScreen(userName = "Gavin", onLogoutClicked = {}) }
-                composable("profile") { ProfileScreen() }
-                composable("search") { SearchScreen() }
-                composable("inbox") { InboxScreen() }
-                composable("selling") { SellingScreen() }
-            }
+
+// class for Navigation Items
+data class BottomNavigationItem(
+    val title: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector,
+)
+
+@Composable
+fun BottomNavigationGraph(
+    navController: NavHostController,
+    paddingValues: PaddingValues
+) {
+    Box(modifier = Modifier.padding(paddingValues)) {
+        NavHost(
+            navController = navController,
+            startDestination = "home"
+        ) {
+            composable("home") { HomeScreen(userName = "Gavin", onLogoutClicked = {}) }
+            composable("profile") { ProfileScreen() }
+            composable("search") { SearchScreen() }
+            composable("inbox") { InboxScreen() }
+            composable("selling") { SellingScreen(navController) }
         }
     }
+}
 
 
 
 @Composable
-    fun NavigationBar(navController: NavController) {
-        // Icons for tabs
-        val tabItems = listOf(
-            BottomNavigationItem(
-                title = "Home",
-                selectedIcon = Icons.Filled.Home,
-                unselectedIcon = Icons.Outlined.Home
-            ),
+fun NavigationBar(navController: NavController) {
+    // Icons for tabs
+    val tabItems = listOf(
+        BottomNavigationItem(
+            title = "Home",
+            selectedIcon = Icons.Filled.Home,
+            unselectedIcon = Icons.Outlined.Home
+        ),
 
-            BottomNavigationItem(
-                title = "Profile",
-                selectedIcon = Icons.Filled.AccountCircle,
-                unselectedIcon = Icons.Outlined.AccountCircle
-            ),
+        BottomNavigationItem(
+            title = "Profile",
+            selectedIcon = Icons.Filled.AccountCircle,
+            unselectedIcon = Icons.Outlined.AccountCircle
+        ),
 
-            BottomNavigationItem(
-                title = "Search",
-                selectedIcon = Icons.Filled.Search,
-                unselectedIcon = Icons.Outlined.Search
-            ),
+        BottomNavigationItem(
+            title = "Search",
+            selectedIcon = Icons.Filled.Search,
+            unselectedIcon = Icons.Outlined.Search
+        ),
 
-            BottomNavigationItem(
-                title = "Inbox",
-                selectedIcon = Icons.Filled.Inbox,
-                unselectedIcon = Icons.Outlined.Inbox
-            ),
+        BottomNavigationItem(
+            title = "Inbox",
+            selectedIcon = Icons.Filled.Inbox,
+            unselectedIcon = Icons.Outlined.Inbox
+        ),
 
-            BottomNavigationItem(
-                title = "Selling",
-                selectedIcon = Icons.Filled.Sell,
-                unselectedIcon = Icons.Outlined.Sell
-            )
+        BottomNavigationItem(
+            title = "Selling",
+            selectedIcon = Icons.Filled.Sell,
+            unselectedIcon = Icons.Outlined.Sell
         )
-        // Tab Navigation
-        var selectedTabIndex by remember { mutableIntStateOf(0) }
-        val routes = listOf("home", "profile", "search", "inbox", "selling")
+    )
+    // Tab Navigation
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val routes = listOf("home", "profile", "search", "inbox", "selling")
 
-        androidx.compose.material3.NavigationBar {
-            tabItems.forEachIndexed { index, bottomNavigationItem ->
-                NavigationBarItem(
-                    selected = index == selectedTabIndex,
-                    onClick = {
-                        selectedTabIndex = index
-                        navController.navigate(routes[index])
-                    },
-                    label = {
-                        Text(text = bottomNavigationItem.title)
-                    },
-                    icon = {
-                        Icon(
-                            imageVector = if (index == selectedTabIndex) {
-                                bottomNavigationItem.selectedIcon
-                            } else {
-                                bottomNavigationItem.unselectedIcon
-                            },
-                            contentDescription = bottomNavigationItem.title
-                        )
-                    },
-                    alwaysShowLabel = true
-                )
-            }
+    androidx.compose.material3.NavigationBar {
+        tabItems.forEachIndexed { index, bottomNavigationItem ->
+            NavigationBarItem(
+                selected = index == selectedTabIndex,
+                onClick = {
+                    selectedTabIndex = index
+                    navController.navigate(routes[index])
+                },
+                label = {
+                    Text(text = bottomNavigationItem.title)
+                },
+                icon = {
+                    Icon(
+                        imageVector = if (index == selectedTabIndex) {
+                            bottomNavigationItem.selectedIcon
+                        } else {
+                            bottomNavigationItem.unselectedIcon
+                        },
+                        contentDescription = bottomNavigationItem.title
+                    )
+                },
+                alwaysShowLabel = true
+            )
         }
     }
+}
 
 @Composable
 fun HomeScreen(userName: String, onLogoutClicked: () -> Unit) {
@@ -332,38 +333,82 @@ fun HomeScreen(userName: String, onLogoutClicked: () -> Unit) {
 
 
 @Composable
-    fun ProfileScreen() {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Profile Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        }
+fun ProfileScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Profile Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
     }
+}
 
-    @Composable
-    fun SearchScreen() {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Search Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        }
+@Composable
+fun SearchScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Search Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
     }
+}
 
-    @Composable
-    fun InboxScreen() {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Inbox Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        }
+@Composable
+fun InboxScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Inbox Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
     }
+}
 
-    @Composable
-    fun SellingScreen() {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+@Composable
+fun SellingScreen(navController: NavController) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text("Selling Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = { navController.navigate("full_selling_screen") }, // Navigate to Full Selling Screen
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text("List an Item", fontSize = 16.sp, color = Color.White)
+            }
         }
     }
+}
 
-
-    @Preview(showBackground = true)
-    @Composable
-    fun LoginScreenPreview() {
-        BuMarketPlaceTheme {
-            LoginScreen(onGoogleSignInClicked = {})
+@Composable
+fun FullSellingScreen() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Full Selling Screen",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            // Add UI for listing an item (e.g., image upload, description input)
+            Text(
+                text = "Here you can add details for your item.",
+                fontSize = 16.sp,
+                textAlign = TextAlign.Center
+            )
         }
     }
+}
+
+
+
+@Preview(showBackground = true)
+@Composable
+fun LoginScreenPreview() {
+    BuMarketPlaceTheme {
+        LoginScreen(onGoogleSignInClicked = {})
+    }
+}

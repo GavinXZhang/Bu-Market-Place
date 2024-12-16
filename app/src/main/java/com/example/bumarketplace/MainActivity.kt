@@ -76,6 +76,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
@@ -405,41 +406,82 @@ fun SellingScreen(navController: NavController) {
 
 @Composable
 fun FullSellingScreen() {
-    // Create a parent column that scrolls
+    // These variables are passed in to there respective helper functions so we can creating accurate listings.
+
+    // For saving all uploaded images
+    val selectedImageUris = remember { mutableStateOf<List<Uri>>(emptyList()) }
+
+    // Title to listing
+    val titleText = remember { mutableStateOf("") }
+
+    // 2 categories of listings Course Materials & Supplies and other user has to pick from the 2
+    val selectedCategory = remember { mutableStateOf("Course Materials & Supplies") }
+    // The condition of the item
+    val selectedCondition = remember { mutableStateOf("Brand New ") }
+
+    // How many of the listing item
+    val itemQuantity = remember { mutableStateOf("") }
+
+    // Description of the item
+    val description = remember { mutableStateOf("") }
+
+    // Price of the item
+    val price = remember { mutableStateOf("") }
+
+    // This is actually the listers information. For off campus we don't display address
+    val selectedAddress = remember { mutableStateOf("Warren Towers") }
+    val offCampusAddress = remember { mutableStateOf("") }
+
+    // If lister accepts returns
+    val selectedReturn = remember { mutableStateOf("Yes Returns") }
+
+    // Listers information we need to know to give them money
+    val cardHolderName = remember { mutableStateOf("") }
+    val cardNumber = remember { mutableStateOf(TextFieldValue()) }
+    val expiryDate = remember { mutableStateOf(TextFieldValue()) }
+    val cvv = remember { mutableStateOf("") }
+
+
+    // Main structure of the code
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        PhotoSection()
+        PhotoSection(selectedImageUris = selectedImageUris)
         Spacer(modifier = Modifier.height(16.dp))
 
-        TitleSection()
+        TitleSection(titleText = titleText)
         Spacer(modifier = Modifier.height(16.dp))
 
-        CategorySection()
+        CategorySection(selectedCategory = selectedCategory)
         Spacer(modifier = Modifier.height(16.dp))
 
-        ConditionSection()
+        ConditionSection(selectedCondition = selectedCondition)
         Spacer(modifier = Modifier.height(16.dp))
 
-        QuantitySection()
+        QuantitySection(itemQuantity = itemQuantity)
         Spacer(modifier = Modifier.height(16.dp))
 
-        DescriptionSection()
+        DescriptionSection(description = description)
         Spacer(modifier = Modifier.height(16.dp))
 
-        PricingSection()
+        PricingSection(price = price)
         Spacer(modifier = Modifier.height(16.dp))
 
-        AddressSection()
+        AddressSection(selectedAddress = selectedAddress, offCampusAddress = offCampusAddress)
         Spacer(modifier = Modifier.height(16.dp))
 
-        ReturnSection()
+        ReturnSection(selectedReturn = selectedReturn)
         Spacer(modifier = Modifier.height(16.dp))
 
-        PaymentSection()
+        PaymentSection(
+            cardHolderName = cardHolderName,
+            cardNumber = cardNumber,
+            expiryDate = expiryDate,
+            cvv = cvv
+        )
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
@@ -462,21 +504,20 @@ fun FullSellingScreen() {
 
 
 @Composable
-fun PhotoSection() {
-    val maxImages = 5 // Maximum number of images
-    var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+fun PhotoSection(selectedImageUris: MutableState<List<Uri>>) {
+    val maxImages = 5 // Keep maxImages local in the function
     var showWarning by remember { mutableStateOf(false) }
 
     val pickImages = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents(),
         onResult = { uris ->
-            val totalImages = selectedImageUris.size + uris.size
+            val totalImages = selectedImageUris.value.size + uris.size
             if (totalImages <= maxImages) {
-                selectedImageUris = selectedImageUris + uris
+                selectedImageUris.value += uris
                 showWarning = false
             } else {
-                val remainingSlots = maxImages - selectedImageUris.size
-                selectedImageUris = selectedImageUris + uris.take(remainingSlots)
+                val remainingSlots = maxImages - selectedImageUris.value.size
+                selectedImageUris.value += uris.take(remainingSlots)
                 showWarning = true
             }
         }
@@ -484,7 +525,7 @@ fun PhotoSection() {
 
     Column(
         modifier = Modifier
-            .fillMaxWidth() // Only fill width, let height wrap content
+            .fillMaxWidth()
             .padding(16.dp)
     ) {
         SectionHeader(title = "Photos")
@@ -499,7 +540,7 @@ fun PhotoSection() {
         }
 
         LazyRow {
-            itemsIndexed(selectedImageUris) { index, uri ->
+            itemsIndexed(selectedImageUris.value) { index, uri ->
                 Box(
                     modifier = Modifier
                         .size(300.dp)
@@ -515,7 +556,7 @@ fun PhotoSection() {
 
                     IconButton(
                         onClick = {
-                            selectedImageUris = selectedImageUris.toMutableList().apply {
+                            selectedImageUris.value = selectedImageUris.value.toMutableList().apply {
                                 removeAt(index)
                             }
                         },
@@ -553,7 +594,7 @@ fun PhotoSection() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            if (selectedImageUris.size < maxImages) {
+            if (selectedImageUris.value.size < maxImages) {
                 IconButton(onClick = { pickImages.launch("image/*") }) {
                     Icon(
                         imageVector = Icons.Filled.CameraAlt,
@@ -577,57 +618,47 @@ fun PhotoSection() {
 
 
 @Composable
-fun TitleSection() {
-    var titleText by remember { mutableStateOf("") } // Blank initial value
-    val maxChars = 80 // Character limit
-
+fun TitleSection(titleText: MutableState<String>) {
+    val maxChars = 80
     Column(modifier = Modifier.padding(8.dp)) {
-        // Section Header
         SectionHeader(title = "Title")
-
-        // Text Field for the title
         TextField(
-            value = titleText,
+            value = titleText.value,
             onValueChange = {
-                if (it.length <= maxChars) { // Limit the input to 80 characters
-                    titleText = it
+                if (it.length <= maxChars) {
+                    titleText.value = it
                 }
             },
             placeholder = { Text("Enter a title for your item") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
-
-        // Character Count Display
         Text(
-            text = "${titleText.length} / $maxChars characters",
+            text = "${titleText.value.length} / $maxChars characters",
             style = MaterialTheme.typography.bodySmall,
-            color = if (titleText.length >= maxChars) Color.Red else Color.Gray,
+            color = if (titleText.value.length >= maxChars) Color.Red else Color.Gray,
             modifier = Modifier.padding(top = 4.dp)
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class) // Needed if you want to do ExposedDropdownMenuBox
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CategorySection() {
-    val options = listOf("Course Materials & Supplies", "Student Life & Misc.") // List of options
-    var expanded by remember { mutableStateOf(false) } // State to manage menu visibility
-    var selectedCategory by remember { mutableStateOf(options[0]) } // Default selected option
+fun CategorySection(selectedCategory: MutableState<String>) {
+    val options = listOf("Course Materials & Supplies", "Student Life & Misc.")
+    var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(8.dp)) {
-        // Section Header
         SectionHeader(title = "Category")
-
-        // Exposed Dropdown Menu
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = !expanded }
         ) {
             TextField(
-                value = selectedCategory,
+                value = selectedCategory.value,
                 onValueChange = {},
-                readOnly = true, // Prevent manual input
+                readOnly = true,
                 label = { Text("Select Category") },
                 trailingIcon = {
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
@@ -644,8 +675,8 @@ fun CategorySection() {
                     DropdownMenuItem(
                         text = { Text(option) },
                         onClick = {
-                            selectedCategory = option // Update the selected option
-                            expanded = false // Close the menu
+                            selectedCategory.value = option
+                            expanded = false
                         }
                     )
                 }
@@ -654,26 +685,23 @@ fun CategorySection() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class) // Needed if you want to do ExposedDropdownMenuBox
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ConditionSection() {
-    val options = listOf("Brand New ", "Like New", "Very Good", "Good", "Acceptable" ) // List of options
-    var expanded by remember { mutableStateOf(false) } // State to manage menu visibility
-    var selectedCondition by remember { mutableStateOf(options[0]) } // Default selected option
+fun ConditionSection(selectedCondition: MutableState<String>) {
+    val options = listOf("Brand New ", "Like New", "Very Good", "Good", "Acceptable" )
+    var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(8.dp)) {
-        // Section Header
         SectionHeader(title = "Condition")
-
-        // Exposed Dropdown Menu
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = !expanded }
         ) {
             TextField(
-                value = selectedCondition,
+                value = selectedCondition.value,
                 onValueChange = {},
-                readOnly = true, // Prevent manual input
+                readOnly = true,
                 label = { Text("Select Condition") },
                 trailingIcon = {
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
@@ -690,8 +718,8 @@ fun ConditionSection() {
                     DropdownMenuItem(
                         text = { Text(option) },
                         onClick = {
-                            selectedCondition = option // Update the selected option
-                            expanded = false // Close the menu
+                            selectedCondition.value = option
+                            expanded = false
                         }
                     )
                 }
@@ -700,33 +728,29 @@ fun ConditionSection() {
     }
 }
 
+
 @Composable
-fun QuantitySection() {
-    var itemQuantity by remember { mutableStateOf("") } // State to hold the input value
-    var isError by remember { mutableStateOf(false) } // State to manage input validation error
+fun QuantitySection(itemQuantity: MutableState<String>) {
+    var isError by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(8.dp)) {
-        // Section Header
         SectionHeader(title = "Quantity")
-
-        // Input Field for Quantity
         OutlinedTextField(
-            value = itemQuantity,
+            value = itemQuantity.value,
             onValueChange = { newValue ->
-                // Check if the input is a valid positive integer
                 if (newValue.all { it.isDigit() }) {
-                    itemQuantity = newValue
+                    itemQuantity.value = newValue
                     isError = false
                 } else {
-                    isError = true // Mark as error for invalid input
+                    isError = true
                 }
             },
             label = { Text("Enter Quantity") },
             keyboardOptions = KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Number, // Show number-only keyboard
+                keyboardType = KeyboardType.Number,
                 imeAction = ImeAction.Done
             ),
-            isError = isError, // Highlight the field if there's an error
+            isError = isError,
             singleLine = true,
             supportingText = {
                 if (isError) {
@@ -736,10 +760,9 @@ fun QuantitySection() {
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Display the currently entered quantity (optional)
-        if (itemQuantity.isNotEmpty() && !isError) {
+        if (itemQuantity.value.isNotEmpty() && !isError) {
             Text(
-                text = "Current Quantity: $itemQuantity",
+                text = "Current Quantity: ${itemQuantity.value}",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 8.dp)
             )
@@ -747,33 +770,29 @@ fun QuantitySection() {
     }
 }
 
+
 @Composable
-fun DescriptionSection() {
-    val maxChars = 500 // Maximum character limit
-    var description by remember { mutableStateOf("") } // State to store the input text
-    val remainingChars = maxChars - description.length // Remaining characters
+fun DescriptionSection(description: MutableState<String>) {
+    val maxChars = 500
+    val remainingChars = maxChars - description.value.length
 
     Column(modifier = Modifier.padding(8.dp)) {
-        // Section Header
         SectionHeader(title = "Description")
-
-        // TextField with character limit
         OutlinedTextField(
-            value = description,
+            value = description.value,
             onValueChange = { newValue ->
-                if (newValue.length <= maxChars) { // Ensure input stays within the limit
-                    description = newValue
+                if (newValue.length <= maxChars) {
+                    description.value = newValue
                 }
             },
             label = { Text("Enter description (max $maxChars characters)") },
-            singleLine = false, // Allows multiline input
-            maxLines = 5, // Set maximum visible lines
+            singleLine = false,
+            maxLines = 5,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp) // Adjust height for better input space
+                .height(120.dp)
         )
 
-        // Character count feedback
         Text(
             text = "Remaining characters: $remainingChars",
             style = MaterialTheme.typography.bodySmall,
@@ -783,16 +802,14 @@ fun DescriptionSection() {
     }
 }
 
+
 @Composable
-fun PricingSection() {
-    var price by remember { mutableStateOf("") } // State to hold the input value
-    var isError by remember { mutableStateOf(false) } // State to handle validation errors
+fun PricingSection(price: MutableState<String>) {
+    var isError by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(8.dp)) {
-        // Section Header
         SectionHeader(title = "Pricing")
 
-        // Row for "Price" label and input field
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -804,21 +821,17 @@ fun PricingSection() {
             )
 
             OutlinedTextField(
-                value = price,
+                value = price.value,
                 onValueChange = { newValue ->
-                    if (newValue.all { it.isDigit() }) {
-                        // Accept only digits (no decimals, letters, or negatives)
-                        price = newValue
-                        isError = false
-                    } else if (newValue.isEmpty()) {
-                        price = ""
+                    if (newValue.all { it.isDigit() } || newValue.isEmpty()) {
+                        price.value = newValue
                         isError = false
                     } else {
                         isError = true
                     }
                 },
                 keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Number, // Show number-only keyboard
+                    keyboardType = KeyboardType.Number,
                     imeAction = ImeAction.Done
                 ),
                 isError = isError,
@@ -828,7 +841,6 @@ fun PricingSection() {
             )
         }
 
-        // Error message for invalid input
         if (isError) {
             Text(
                 text = "Please enter a valid positive whole number.",
@@ -840,33 +852,25 @@ fun PricingSection() {
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddressSection() {
-    // List of predefined options
+fun AddressSection(selectedAddress: MutableState<String>, offCampusAddress: MutableState<String>) {
     val options = listOf(
         "Warren Towers", "Bay State Road", "South Campus",
         "Myles", "Hojo", "The Towers", "StuVi1", "StuVi2", "Off Campus"
     )
-    var expanded by remember { mutableStateOf(false) } // Dropdown state
-    var selectedAddress by remember { mutableStateOf(options[0]) } // Default selection
-
-    // State for the "Off Campus" address input
-    var offCampusAddress by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
     val characterLimit = 50
 
     Column(modifier = Modifier.padding(8.dp)) {
-        // Section Header
         SectionHeader(title = "Address")
-
-        // Exposed Dropdown Menu
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = !expanded }
         ) {
-            // Dropdown Trigger
             TextField(
-                value = selectedAddress,
+                value = selectedAddress.value,
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Select Address") },
@@ -878,7 +882,6 @@ fun AddressSection() {
                     .menuAnchor()
             )
 
-            // Dropdown Options
             ExposedDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
@@ -887,24 +890,22 @@ fun AddressSection() {
                     DropdownMenuItem(
                         text = { Text(option) },
                         onClick = {
-                            selectedAddress = option // Update the selected option
-                            if (option != "Off Campus") offCampusAddress = "" // Reset Off Campus input
-                            expanded = false // Close the menu
+                            selectedAddress.value = option
+                            if (option != "Off Campus") offCampusAddress.value = ""
+                            expanded = false
                         }
                     )
                 }
             }
         }
 
-        // Show TextField for "Off Campus" selection
-        if (selectedAddress == "Off Campus") {
-            Spacer(modifier = Modifier.height(8.dp)) // Add spacing
+        if (selectedAddress.value == "Off Campus") {
+            Spacer(modifier = Modifier.height(8.dp))
             TextField(
-                value = offCampusAddress,
+                value = offCampusAddress.value,
                 onValueChange = { newInput ->
-                    // Ensure input doesn't exceed character limit
                     if (newInput.length <= characterLimit) {
-                        offCampusAddress = newInput
+                        offCampusAddress.value = newInput
                     }
                 },
                 label = { Text("Enter Off Campus Address") },
@@ -913,9 +914,8 @@ fun AddressSection() {
                 singleLine = true
             )
 
-            // Character count indicator
             Text(
-                text = "${offCampusAddress.length} / $characterLimit characters",
+                text = "${offCampusAddress.value.length} / $characterLimit characters",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray,
                 modifier = Modifier.padding(top = 4.dp)
@@ -924,26 +924,21 @@ fun AddressSection() {
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReturnSection() {
-    // List of predefined options
+fun ReturnSection(selectedReturn: MutableState<String>) {
     val options = listOf("Yes Returns", "No Returns")
-    var expanded by remember { mutableStateOf(false) } // Dropdown state
-    var selectedReturn by remember { mutableStateOf(options[0]) } // Default selection
+    var expanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(8.dp)) {
-        // Section Header
         SectionHeader(title = "30 Day Return Policy")
-
-        // Exposed Dropdown Menu
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { expanded = !expanded }
         ) {
-            // Dropdown Trigger
             TextField(
-                value = selectedReturn,
+                value = selectedReturn.value,
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Select Return Policy") },
@@ -955,7 +950,6 @@ fun ReturnSection() {
                     .menuAnchor()
             )
 
-            // Dropdown Options
             ExposedDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
@@ -964,18 +958,17 @@ fun ReturnSection() {
                     DropdownMenuItem(
                         text = { Text(option) },
                         onClick = {
-                            selectedReturn = option // Update the selected option
-                            expanded = false // Close the menu
+                            selectedReturn.value = option
+                            expanded = false
                         }
                     )
                 }
             }
         }
 
-        // Display selected option (optional)
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Selected Policy: $selectedReturn",
+            text = "Selected Policy: ${selectedReturn.value}",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 4.dp)
         )
@@ -993,20 +986,18 @@ fun SectionHeader(title: String) {
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PaymentSection() {
-    var cardNumber by remember { mutableStateOf(TextFieldValue()) }
-    var cardHolderName by remember { mutableStateOf("") }
-    var expiryDate by remember { mutableStateOf(TextFieldValue()) }
-    var cvv by remember { mutableStateOf("") }
-
+fun PaymentSection(
+    cardNumber: MutableState<TextFieldValue>,
+    cardHolderName: MutableState<String>,
+    expiryDate: MutableState<TextFieldValue>,
+    cvv: MutableState<String>
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        // Payment Card Header
         Text(
             text = "Payment Card Details",
             style = MaterialTheme.typography.titleMedium,
@@ -1020,7 +1011,6 @@ fun PaymentSection() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Payment Card Preview
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1033,14 +1023,14 @@ fun PaymentSection() {
             ) {
                 Text(text = "CARD HOLDER", color = Color.White, fontSize = 12.sp)
                 Text(
-                    text = cardHolderName.ifBlank { "Make it Easy" },
+                    text = cardHolderName.value.ifBlank { "Make it Easy" },
                     color = Color.White,
                     fontSize = 16.sp
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = if (cardNumber.text.isBlank()) "XXXX XXXX XXXX XXXX"
-                    else cardNumber.text,
+                    text = if (cardNumber.value.text.isBlank()) "XXXX XXXX XXXX XXXX"
+                    else cardNumber.value.text,
                     color = Color.White,
                     fontSize = 20.sp
                 )
@@ -1049,21 +1039,19 @@ fun PaymentSection() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Card Holder Name Input
         OutlinedTextField(
-            value = cardHolderName,
-            onValueChange = { cardHolderName = it },
+            value = cardHolderName.value,
+            onValueChange = { cardHolderName.value = it },
             label = { Text("Card Holder Name") },
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Card Number Input
         OutlinedTextField(
-            value = cardNumber,
+            value = cardNumber.value,
             onValueChange = { newValue ->
-                cardNumber = formatCardNumberWithCaret(newValue)
+                cardNumber.value = formatCardNumberWithCaret(newValue)
             },
             label = { Text("Card Number") },
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
@@ -1073,11 +1061,10 @@ fun PaymentSection() {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Expiry Date Input
         OutlinedTextField(
-            value = expiryDate,
+            value = expiryDate.value,
             onValueChange = { newValue ->
-                expiryDate = formatExpiryDateWithCaret(newValue)
+                expiryDate.value = formatExpiryDateWithCaret(newValue)
             },
             label = { Text("Expiry Date (MM/YY)") },
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
@@ -1087,12 +1074,11 @@ fun PaymentSection() {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // CVV Input
         OutlinedTextField(
-            value = cvv,
+            value = cvv.value,
             onValueChange = {
                 if (it.length <= 3 && it.all { char -> char.isDigit() }) {
-                    cvv = it
+                    cvv.value = it
                 }
             },
             label = { Text("CVV") },

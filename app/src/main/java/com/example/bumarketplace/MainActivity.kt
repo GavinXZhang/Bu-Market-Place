@@ -406,23 +406,64 @@ fun SellingScreen(navController: NavController) {
 
 @Composable
 fun FullSellingScreen() {
-    // These variables are passed in to their respective helper functions to create accurate listings.
+    // These variables are passed in to there respective helper functions so we can creating accurate listings.
+
+    // For saving all uploaded images
     val selectedImageUris = remember { mutableStateOf<List<Uri>>(emptyList()) }
+
+    // Title to listing
     val titleText = remember { mutableStateOf("") }
+
+    // 2 categories of listings Course Materials & Supplies and other user has to pick from the 2
     val selectedCategory = remember { mutableStateOf("Course Materials & Supplies") }
+    // The condition of the item
     val selectedCondition = remember { mutableStateOf("Brand New ") }
+
+    // How many of the listing item
     val itemQuantity = remember { mutableStateOf("") }
+
+    // Description of the item
     val description = remember { mutableStateOf("") }
+
+    // Price of the item
     val price = remember { mutableStateOf("") }
+
+    // This is actually the listers information. For off campus we don't display address
     val selectedAddress = remember { mutableStateOf("Warren Towers") }
     val offCampusAddress = remember { mutableStateOf("") }
+
+    // If lister accepts returns
     val selectedReturn = remember { mutableStateOf("Yes Returns") }
+
+    // Listers information we need to know to give them money
     val cardHolderName = remember { mutableStateOf("") }
     val cardNumber = remember { mutableStateOf(TextFieldValue()) }
     val expiryDate = remember { mutableStateOf(TextFieldValue()) }
     val cvv = remember { mutableStateOf("") }
 
-    // Main structure of the code
+    var message by remember { mutableStateOf("") }
+
+    fun validateFields(): Boolean {
+        // Basic validation checks
+        // For demonstration, we assume all must be non-empty where applicable
+        if (selectedImageUris.value.isEmpty()) return false
+        if (titleText.value.isBlank()) return false
+        if (selectedCategory.value.isBlank()) return false
+        if (selectedCondition.value.isBlank()) return false
+        if (itemQuantity.value.isBlank()) return false
+        if (description.value.isBlank()) return false
+        if (price.value.isBlank()) return false
+        // If the user selected "Off Campus", ensure offCampusAddress is provided
+        if (selectedAddress.value == "Off Campus" && offCampusAddress.value.isBlank()) return false
+        if (selectedReturn.value.isBlank()) return false
+        if (cardHolderName.value.isBlank()) return false
+        if (cardNumber.value.text.isBlank()) return false
+        if (expiryDate.value.text.isBlank()) return false
+        if (cvv.value.isBlank()) return false
+
+        return true
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -465,15 +506,43 @@ fun FullSellingScreen() {
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Keep only the "List your item" button
+        if (message.isNotBlank()) {
+            Text(
+                text = message,
+                color = if (message.contains("Success")) Color.Green else Color.Red,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
         Button(
-            onClick = { /* Handle listing item */ },
+            onClick = {
+                if (validateFields()) {
+                    // Print all variables to console
+                    println("Selected Image URIs: ${selectedImageUris.value}")
+                    println("Title: ${titleText.value}")
+                    println("Category: ${selectedCategory.value}")
+                    println("Condition: ${selectedCondition.value}")
+                    println("Quantity: ${itemQuantity.value}")
+                    println("Description: ${description.value}")
+                    println("Price: ${price.value}")
+                    println("Address: ${selectedAddress.value}")
+                    println("OffCampus Address: ${offCampusAddress.value}")
+                    println("Return Policy: ${selectedReturn.value}")
+                    println("Card Holder Name: ${cardHolderName.value}")
+                    println("Card Number: ${cardNumber.value.text}")
+                    println("Expiry Date: ${expiryDate.value.text}")
+                    println("CVV: ${cvv.value}")
+
+                    message = "Success! Listing is ready."
+                } else {
+                    message = "Please fill out all fields."
+                }
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("List your item")
         }
-
-        // The preview button and its spacer have been removed
     }
 }
 

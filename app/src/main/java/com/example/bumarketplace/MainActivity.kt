@@ -142,7 +142,7 @@ class MainActivity : ComponentActivity() {
                         composable("search") { SearchScreen() }
                         composable("inbox") { InboxScreen() }
                         composable("selling") { SellingScreen(navController) }
-                        composable("full_selling_screen") { FullSellingScreen() }
+                        composable("full_selling_screen") { FullSellingScreen(navController) }
                     }
                 }
             }
@@ -404,8 +404,10 @@ fun SellingScreen(navController: NavController) {
     }
 }
 
+
+// All Functions from this point on are helper to SellingScreen
 @Composable
-fun FullSellingScreen() {
+fun FullSellingScreen(navController: NavController) {
     // These variables are passed in to there respective helper functions so we can creating accurate listings.
 
     // For saving all uploaded images
@@ -443,6 +445,7 @@ fun FullSellingScreen() {
 
     var message by remember { mutableStateOf("") }
 
+    // function that checks to make all fields are filled
     fun validateFields(): Boolean {
         // Basic validation checks
         // For demonstration, we assume all must be non-empty where applicable
@@ -506,6 +509,7 @@ fun FullSellingScreen() {
         )
         Spacer(modifier = Modifier.height(16.dp))
 
+        // if all fields are filled we print variables and navigate back to previous screen and listings are added
         if (message.isNotBlank()) {
             Text(
                 text = message,
@@ -535,6 +539,9 @@ fun FullSellingScreen() {
                     println("CVV: ${cvv.value}")
 
                     message = "Success! Listing is ready."
+                    // Navigate back to the original selling screen
+                    navController.popBackStack()
+
                 } else {
                     message = "Please fill out all fields."
                 }
@@ -549,8 +556,8 @@ fun FullSellingScreen() {
 
 @Composable
 fun PhotoSection(selectedImageUris: MutableState<List<Uri>>) {
-    val maxImages = 5 // Keep maxImages local in the function
-    var showWarning by remember { mutableStateOf(false) }
+    val maxImages = 5 // Max number of images
+    var showWarning by remember { mutableStateOf(false) } // Use this to know if user surpassing num of images
 
     val pickImages = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents(),
@@ -615,7 +622,7 @@ fun PhotoSection(selectedImageUris: MutableState<List<Uri>>) {
                             tint = Color.White
                         )
                     }
-
+                    // Puts number in corner of images
                     Text(
                         text = "${index + 1}",
                         color = Color.White,
@@ -634,6 +641,7 @@ fun PhotoSection(selectedImageUris: MutableState<List<Uri>>) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Displays images and checks to see if there over maxImages
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
@@ -663,6 +671,7 @@ fun PhotoSection(selectedImageUris: MutableState<List<Uri>>) {
 
 @Composable
 fun TitleSection(titleText: MutableState<String>) {
+    // User can only write at max 80 characters for a title and we save that
     val maxChars = 80
     Column(modifier = Modifier.padding(8.dp)) {
         SectionHeader(title = "Title")
@@ -687,7 +696,7 @@ fun TitleSection(titleText: MutableState<String>) {
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class) // Necessary for drop down beta menu
 @Composable
 fun CategorySection(selectedCategory: MutableState<String>) {
     val options = listOf("Course Materials & Supplies", "Student Life & Misc.")
@@ -733,6 +742,7 @@ fun CategorySection(selectedCategory: MutableState<String>) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConditionSection(selectedCondition: MutableState<String>) {
+    // Find condition of item
     val options = listOf("Brand New ", "Like New", "Very Good", "Good", "Acceptable" )
     var expanded by remember { mutableStateOf(false) }
 
@@ -775,6 +785,7 @@ fun ConditionSection(selectedCondition: MutableState<String>) {
 
 @Composable
 fun QuantitySection(itemQuantity: MutableState<String>) {
+    // Sets quanitiy of item
     var isError by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(8.dp)) {
@@ -817,6 +828,7 @@ fun QuantitySection(itemQuantity: MutableState<String>) {
 
 @Composable
 fun DescriptionSection(description: MutableState<String>) {
+    // Description for title
     val maxChars = 500
     val remainingChars = maxChars - description.value.length
 
@@ -849,6 +861,7 @@ fun DescriptionSection(description: MutableState<String>) {
 
 @Composable
 fun PricingSection(price: MutableState<String>) {
+    // Sets price for everything
     var isError by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.padding(8.dp)) {
@@ -900,6 +913,7 @@ fun PricingSection(price: MutableState<String>) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddressSection(selectedAddress: MutableState<String>, offCampusAddress: MutableState<String>) {
+    // Gets address of seller
     val options = listOf(
         "Warren Towers", "Bay State Road", "South Campus",
         "Myles", "Hojo", "The Towers", "StuVi1", "StuVi2", "Off Campus"
@@ -972,6 +986,7 @@ fun AddressSection(selectedAddress: MutableState<String>, offCampusAddress: Muta
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReturnSection(selectedReturn: MutableState<String>) {
+    // If they accept returns
     val options = listOf("Yes Returns", "No Returns")
     var expanded by remember { mutableStateOf(false) }
 
@@ -1022,6 +1037,7 @@ fun ReturnSection(selectedReturn: MutableState<String>) {
 
 @Composable
 fun SectionHeader(title: String) {
+    // Makes sections look pretty
     Text(
         text = title,
         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -1037,6 +1053,7 @@ fun PaymentSection(
     expiryDate: MutableState<TextFieldValue>,
     cvv: MutableState<String>
 ) {
+    // Formatting and making and displaying card
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1137,7 +1154,7 @@ fun PaymentSection(
 
 
 
-
+// These functions help with formatting for PaymentSection
 /**
  * Formats the card number with spaces while maintaining the caret position.
  */

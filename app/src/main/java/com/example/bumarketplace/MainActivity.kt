@@ -76,8 +76,14 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 
 
 class MainActivity : ComponentActivity() {
@@ -538,6 +544,9 @@ fun FullSellingScreen() {
         // Return Section
         ReturnSection()
 
+        // Payment Section
+        PaymentSection()
+
 
         // Preferences Section
         SectionHeader(title = "Preferences")
@@ -983,6 +992,169 @@ fun SectionHeader(title: String) {
         modifier = Modifier.padding(vertical = 8.dp)
     )
 }
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PaymentSection() {
+    var cardNumber by remember { mutableStateOf(TextFieldValue()) }
+    var cardHolderName by remember { mutableStateOf("") }
+    var expiryDate by remember { mutableStateOf(TextFieldValue()) }
+    var cvv by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        // Payment Card Header
+        Text(
+            text = "Payment Card Details",
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF17479E))
+                .padding(16.dp),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Payment Card Preview
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .background(Color(0xFF17479E), shape = RoundedCornerShape(8.dp))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "CARD HOLDER", color = Color.White, fontSize = 12.sp)
+                Text(
+                    text = cardHolderName.ifBlank { "Make it Easy" },
+                    color = Color.White,
+                    fontSize = 16.sp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = if (cardNumber.text.isBlank()) "XXXX XXXX XXXX XXXX"
+                    else cardNumber.text,
+                    color = Color.White,
+                    fontSize = 20.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Card Holder Name Input
+        OutlinedTextField(
+            value = cardHolderName,
+            onValueChange = { cardHolderName = it },
+            label = { Text("Card Holder Name") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Card Number Input
+        OutlinedTextField(
+            value = cardNumber,
+            onValueChange = { newValue ->
+                cardNumber = formatCardNumberWithCaret(newValue)
+            },
+            label = { Text("Card Number") },
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Expiry Date Input
+        OutlinedTextField(
+            value = expiryDate,
+            onValueChange = { newValue ->
+                expiryDate = formatExpiryDateWithCaret(newValue)
+            },
+            label = { Text("Expiry Date (MM/YY)") },
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // CVV Input
+        OutlinedTextField(
+            value = cvv,
+            onValueChange = {
+                if (it.length <= 3 && it.all { char -> char.isDigit() }) {
+                    cvv = it
+                }
+            },
+            label = { Text("CVV") },
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+/**
+ * Formats the card number with spaces while maintaining the caret position.
+ */
+fun formatCardNumberWithCaret(input: TextFieldValue): TextFieldValue {
+    val digitsOnly = input.text.filter { it.isDigit() }.take(16) // Keep digits only (max 16)
+    val formatted = digitsOnly.chunked(4).joinToString(" ") // Add spaces every 4 digits
+
+    // Calculate new caret position
+    val newCursorPosition = input.selection.start + formatted.count { it == ' ' } - input.text.count { it == ' ' }
+
+    return TextFieldValue(
+        text = formatted,
+        selection = TextRange(newCursorPosition.coerceAtMost(formatted.length))
+    )
+}
+
+/**
+ * Formats the expiry date with a slash (MM/YY) while maintaining the caret position.
+ */
+fun formatExpiryDateWithCaret(input: TextFieldValue): TextFieldValue {
+    val digitsOnly = input.text.filter { it.isDigit() }.take(4) // Max 4 digits (MMYY)
+    val formatted = when {
+        digitsOnly.length <= 2 -> digitsOnly
+        else -> "${digitsOnly.substring(0, 2)}/${digitsOnly.substring(2)}"
+    }
+
+    // Calculate new caret position
+    val newCursorPosition = if (input.selection.start <= 2) {
+        input.selection.start
+    } else {
+        input.selection.start + 1
+    }
+
+    return TextFieldValue(
+        text = formatted,
+        selection = TextRange(newCursorPosition.coerceAtMost(formatted.length))
+    )
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -61,7 +61,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.background
 
-// Everything here is for camera implmentation
+// Everything here is for camera implementation
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.mutableStateOf
@@ -461,7 +461,6 @@ fun FullSellingScreen() {
 }
 
 
-
 @Composable
 fun PhotoSection() {
     val maxImages = 5 // Maximum number of images
@@ -614,7 +613,7 @@ fun TitleSection() {
 fun CategorySection() {
     val options = listOf("Course Materials & Supplies", "Student Life & Misc.") // List of options
     var expanded by remember { mutableStateOf(false) } // State to manage menu visibility
-    var selectedOption by remember { mutableStateOf(options[0]) } // Default selected option
+    var selectedCategory by remember { mutableStateOf(options[0]) } // Default selected option
 
     Column(modifier = Modifier.padding(8.dp)) {
         // Section Header
@@ -626,7 +625,7 @@ fun CategorySection() {
             onExpandedChange = { expanded = !expanded }
         ) {
             TextField(
-                value = selectedOption,
+                value = selectedCategory,
                 onValueChange = {},
                 readOnly = true, // Prevent manual input
                 label = { Text("Select Category") },
@@ -645,7 +644,7 @@ fun CategorySection() {
                     DropdownMenuItem(
                         text = { Text(option) },
                         onClick = {
-                            selectedOption = option // Update the selected option
+                            selectedCategory = option // Update the selected option
                             expanded = false // Close the menu
                         }
                     )
@@ -660,7 +659,7 @@ fun CategorySection() {
 fun ConditionSection() {
     val options = listOf("Brand New ", "Like New", "Very Good", "Good", "Acceptable" ) // List of options
     var expanded by remember { mutableStateOf(false) } // State to manage menu visibility
-    var selectedOption by remember { mutableStateOf(options[0]) } // Default selected option
+    var selectedCondition by remember { mutableStateOf(options[0]) } // Default selected option
 
     Column(modifier = Modifier.padding(8.dp)) {
         // Section Header
@@ -672,7 +671,7 @@ fun ConditionSection() {
             onExpandedChange = { expanded = !expanded }
         ) {
             TextField(
-                value = selectedOption,
+                value = selectedCondition,
                 onValueChange = {},
                 readOnly = true, // Prevent manual input
                 label = { Text("Select Condition") },
@@ -691,7 +690,7 @@ fun ConditionSection() {
                     DropdownMenuItem(
                         text = { Text(option) },
                         onClick = {
-                            selectedOption = option // Update the selected option
+                            selectedCondition = option // Update the selected option
                             expanded = false // Close the menu
                         }
                     )
@@ -703,7 +702,7 @@ fun ConditionSection() {
 
 @Composable
 fun QuantitySection() {
-    var quantity by remember { mutableStateOf("") } // State to hold the input value
+    var itemQuantity by remember { mutableStateOf("") } // State to hold the input value
     var isError by remember { mutableStateOf(false) } // State to manage input validation error
 
     Column(modifier = Modifier.padding(8.dp)) {
@@ -712,11 +711,11 @@ fun QuantitySection() {
 
         // Input Field for Quantity
         OutlinedTextField(
-            value = quantity,
+            value = itemQuantity,
             onValueChange = { newValue ->
                 // Check if the input is a valid positive integer
                 if (newValue.all { it.isDigit() }) {
-                    quantity = newValue
+                    itemQuantity = newValue
                     isError = false
                 } else {
                     isError = true // Mark as error for invalid input
@@ -738,9 +737,9 @@ fun QuantitySection() {
         )
 
         // Display the currently entered quantity (optional)
-        if (quantity.isNotEmpty() && !isError) {
+        if (itemQuantity.isNotEmpty() && !isError) {
             Text(
-                text = "Current Quantity: $quantity",
+                text = "Current Quantity: $itemQuantity",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 8.dp)
             )
@@ -850,7 +849,7 @@ fun AddressSection() {
         "Myles", "Hojo", "The Towers", "StuVi1", "StuVi2", "Off Campus"
     )
     var expanded by remember { mutableStateOf(false) } // Dropdown state
-    var selectedOption by remember { mutableStateOf(options[0]) } // Default selection
+    var selectedAddress by remember { mutableStateOf(options[0]) } // Default selection
 
     // State for the "Off Campus" address input
     var offCampusAddress by remember { mutableStateOf("") }
@@ -867,7 +866,7 @@ fun AddressSection() {
         ) {
             // Dropdown Trigger
             TextField(
-                value = selectedOption,
+                value = selectedAddress,
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Select Address") },
@@ -888,7 +887,7 @@ fun AddressSection() {
                     DropdownMenuItem(
                         text = { Text(option) },
                         onClick = {
-                            selectedOption = option // Update the selected option
+                            selectedAddress = option // Update the selected option
                             if (option != "Off Campus") offCampusAddress = "" // Reset Off Campus input
                             expanded = false // Close the menu
                         }
@@ -898,7 +897,7 @@ fun AddressSection() {
         }
 
         // Show TextField for "Off Campus" selection
-        if (selectedOption == "Off Campus") {
+        if (selectedAddress == "Off Campus") {
             Spacer(modifier = Modifier.height(8.dp)) // Add spacing
             TextField(
                 value = offCampusAddress,
@@ -931,7 +930,7 @@ fun ReturnSection() {
     // List of predefined options
     val options = listOf("Yes Returns", "No Returns")
     var expanded by remember { mutableStateOf(false) } // Dropdown state
-    var selectedOption by remember { mutableStateOf(options[0]) } // Default selection
+    var selectedReturn by remember { mutableStateOf(options[0]) } // Default selection
 
     Column(modifier = Modifier.padding(8.dp)) {
         // Section Header
@@ -944,7 +943,7 @@ fun ReturnSection() {
         ) {
             // Dropdown Trigger
             TextField(
-                value = selectedOption,
+                value = selectedReturn,
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Select Return Policy") },
@@ -965,7 +964,7 @@ fun ReturnSection() {
                     DropdownMenuItem(
                         text = { Text(option) },
                         onClick = {
-                            selectedOption = option // Update the selected option
+                            selectedReturn = option // Update the selected option
                             expanded = false // Close the menu
                         }
                     )
@@ -976,7 +975,7 @@ fun ReturnSection() {
         // Display selected option (optional)
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Selected Policy: $selectedOption",
+            text = "Selected Policy: $selectedReturn",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 4.dp)
         )
@@ -1102,6 +1101,12 @@ fun PaymentSection() {
         )
     }
 }
+
+
+
+
+
+
 
 /**
  * Formats the card number with spaces while maintaining the caret position.

@@ -406,41 +406,21 @@ fun SellingScreen(navController: NavController) {
 
 @Composable
 fun FullSellingScreen() {
-    // These variables are passed in to there respective helper functions so we can creating accurate listings.
-
-    // For saving all uploaded images
+    // These variables are passed in to their respective helper functions to create accurate listings.
     val selectedImageUris = remember { mutableStateOf<List<Uri>>(emptyList()) }
-
-    // Title to listing
     val titleText = remember { mutableStateOf("") }
-
-    // 2 categories of listings Course Materials & Supplies and other user has to pick from the 2
     val selectedCategory = remember { mutableStateOf("Course Materials & Supplies") }
-    // The condition of the item
     val selectedCondition = remember { mutableStateOf("Brand New ") }
-
-    // How many of the listing item
     val itemQuantity = remember { mutableStateOf("") }
-
-    // Description of the item
     val description = remember { mutableStateOf("") }
-
-    // Price of the item
     val price = remember { mutableStateOf("") }
-
-    // This is actually the listers information. For off campus we don't display address
     val selectedAddress = remember { mutableStateOf("Warren Towers") }
     val offCampusAddress = remember { mutableStateOf("") }
-
-    // If lister accepts returns
     val selectedReturn = remember { mutableStateOf("Yes Returns") }
-
-    // Listers information we need to know to give them money
     val cardHolderName = remember { mutableStateOf("") }
     val cardNumber = remember { mutableStateOf(TextFieldValue()) }
     val expiryDate = remember { mutableStateOf(TextFieldValue()) }
     val cvv = remember { mutableStateOf("") }
-
 
     // Main structure of the code
     Column(
@@ -448,6 +428,7 @@ fun FullSellingScreen() {
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
+            .padding(bottom = 80.dp) // Additional padding to ensure visibility
     ) {
         PhotoSection(selectedImageUris = selectedImageUris)
         Spacer(modifier = Modifier.height(16.dp))
@@ -484,6 +465,7 @@ fun FullSellingScreen() {
         )
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Keep only the "List your item" button
         Button(
             onClick = { /* Handle listing item */ },
             modifier = Modifier.fillMaxWidth()
@@ -491,14 +473,7 @@ fun FullSellingScreen() {
             Text("List your item")
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = { /* Handle preview */ },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
-        ) {
-            Text("Preview")
-        }
+        // The preview button and its spacer have been removed
     }
 }
 

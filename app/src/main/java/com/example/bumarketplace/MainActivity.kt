@@ -405,11 +405,69 @@ fun SellingScreen(navController: NavController) {
 
 @Composable
 fun FullSellingScreen() {
-    val maxImages = 5 // Set the maximum number of images
-    var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
-    var showWarning by remember { mutableStateOf(false) } // Warning for max limit
+    // Create a parent column that scrolls
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        PhotoSection()
+        Spacer(modifier = Modifier.height(16.dp))
 
-    // Define the photo picker activity result contract for multiple images
+        TitleSection()
+        Spacer(modifier = Modifier.height(16.dp))
+
+        CategorySection()
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ConditionSection()
+        Spacer(modifier = Modifier.height(16.dp))
+
+        QuantitySection()
+        Spacer(modifier = Modifier.height(16.dp))
+
+        DescriptionSection()
+        Spacer(modifier = Modifier.height(16.dp))
+
+        PricingSection()
+        Spacer(modifier = Modifier.height(16.dp))
+
+        AddressSection()
+        Spacer(modifier = Modifier.height(16.dp))
+
+        ReturnSection()
+        Spacer(modifier = Modifier.height(16.dp))
+
+        PaymentSection()
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = { /* Handle listing item */ },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("List your item")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = { /* Handle preview */ },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+        ) {
+            Text("Preview")
+        }
+    }
+}
+
+
+
+@Composable
+fun PhotoSection() {
+    val maxImages = 5 // Maximum number of images
+    var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var showWarning by remember { mutableStateOf(false) }
+
     val pickImages = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents(),
         onResult = { uris ->
@@ -427,151 +485,93 @@ fun FullSellingScreen() {
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .fillMaxWidth() // Only fill width, let height wrap content
             .padding(16.dp)
     ) {
-        // Photo Section
         SectionHeader(title = "Photos")
-        Column {
-            if (showWarning) {
-                Text(
-                    text = "You can only select up to $maxImages images.",
-                    color = Color.Red,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-            }
 
-            LazyRow {
-                itemsIndexed(selectedImageUris) { index, uri ->
-                    Box(
+        if (showWarning) {
+            Text(
+                text = "You can only select up to $maxImages images.",
+                color = Color.Red,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
+        LazyRow {
+            itemsIndexed(selectedImageUris) { index, uri ->
+                Box(
+                    modifier = Modifier
+                        .size(300.dp)
+                        .padding(end = 8.dp)
+                        .background(Color.Gray, shape = RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.BottomEnd
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(uri),
+                        contentDescription = "Selected Image",
+                        modifier = Modifier.fillMaxSize()
+                    )
+
+                    IconButton(
+                        onClick = {
+                            selectedImageUris = selectedImageUris.toMutableList().apply {
+                                removeAt(index)
+                            }
+                        },
                         modifier = Modifier
-                            .size(300.dp)
-                            .padding(end = 8.dp)
-                            .background(Color.Gray, shape = RoundedCornerShape(8.dp)),
-                        contentAlignment = Alignment.BottomEnd
+                            .size(24.dp)
+                            .align(Alignment.TopEnd)
+                            .background(Color.Red, shape = CircleShape)
                     ) {
-                        Image(
-                            painter = rememberAsyncImagePainter(uri),
-                            contentDescription = "Selected Image",
-                            modifier = Modifier.fillMaxSize()
-                        )
-
-                        // "X" Button for removing the image
-                        IconButton(
-                            onClick = {
-                                selectedImageUris = selectedImageUris.toMutableList().apply {
-                                    removeAt(index)
-                                }
-                            },
-                            modifier = Modifier
-                                .size(24.dp)
-                                .align(Alignment.TopEnd)
-                                .background(Color.Red, shape = CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Remove Image",
-                                tint = Color.White
-                            )
-                        }
-
-                        // Number indicator for the image
-                        Text(
-                            text = "${index + 1}",
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier
-                                .background(
-                                    Color.Black.copy(alpha = 0.6f),
-                                    RoundedCornerShape(4.dp)
-                                )
-                                .padding(4.dp)
-                                .align(Alignment.BottomEnd)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                if (selectedImageUris.size < maxImages) {
-                    IconButton(onClick = { pickImages.launch("image/*") }) {
                         Icon(
-                            imageVector = Icons.Filled.CameraAlt,
-                            contentDescription = "Pick Images",
-                            tint = Color.White,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(Color.DarkGray, shape = RoundedCornerShape(8.dp))
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Remove Image",
+                            tint = Color.White
                         )
                     }
-                } else {
+
                     Text(
-                        text = "Image limit reached.",
-                        color = Color.Gray,
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "${index + 1}",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .background(
+                                Color.Black.copy(alpha = 0.6f),
+                                RoundedCornerShape(4.dp)
+                            )
+                            .padding(4.dp)
+                            .align(Alignment.BottomEnd)
                     )
                 }
             }
         }
 
-        TitleSection()
-
-        // Category Section
-        CategorySection()
-
-        // Condition Section
-        ConditionSection()
-
-        // Item Quantity Section
-        QuantitySection()
-
-        // Description Section
-        DescriptionSection()
-
-        // Pricing Section
-        PricingSection()
-
-        // Shipping Section
-        AddressSection()
-
-        // Return Section
-        ReturnSection()
-
-        // Payment Section
-        PaymentSection()
-
-
-        // Preferences Section
-        SectionHeader(title = "Preferences")
-        Column(modifier = Modifier.padding(8.dp)) {
-            Text("Payment Methods: Payments managed by eBay")
-            Text("Handling Time: 2 business days")
-            Text("Item Location: United States, 10026 (New York, New York)")
-            Text("Return Policy: No returns accepted unless not as described")
-        }
-
-        // Final Buttons
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = { /* Handle listing item */ },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("List your item")
-        }
         Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = { /* Handle preview */ },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
-            Text("Preview")
+            if (selectedImageUris.size < maxImages) {
+                IconButton(onClick = { pickImages.launch("image/*") }) {
+                    Icon(
+                        imageVector = Icons.Filled.CameraAlt,
+                        contentDescription = "Pick Images",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(Color.DarkGray, shape = RoundedCornerShape(8.dp))
+                    )
+                }
+            } else {
+                Text(
+                    text = "Image limit reached.",
+                    color = Color.Gray,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }

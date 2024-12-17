@@ -37,7 +37,8 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
-
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Sell
@@ -176,7 +177,30 @@ class MainActivity : ComponentActivity() {
                             val userName = backStackEntry.arguments?.getString("userName") ?: "Guest"
                             HomeScreen(
                                 userName = userName,
-                                onLogoutClicked = { logout() }
+                                onLogoutClicked = { logout() },
+                                onProductClicked = { product ->
+                                    navController.navigate(
+                                        "item_details/${product.title}/${product.description}/${product.price}/New/${product.seller}"
+                                    )
+                                }
+                            )
+                        }
+                        composable("item_details/{title}/{description}/{price}/{condition}/{seller}") { backStackEntry ->
+                            // Retrieve arguments
+                            val title = backStackEntry.arguments?.getString("title") ?: "No Title"
+                            val description = backStackEntry.arguments?.getString("description") ?: "No Description"
+                            val price = backStackEntry.arguments?.getString("price") ?: "0"
+                            val condition = backStackEntry.arguments?.getString("condition") ?: "Unknown"
+                            val seller = backStackEntry.arguments?.getString("seller") ?: "Unknown Seller"
+
+                            // Pass to ItemDetailsScreen
+                            ItemDetailsScreen(
+                                title = title,
+                                description = description,
+                                price = price,
+                                condition = condition,
+                                seller = seller,
+                                onBackClicked = { navController.popBackStack() }
                             )
                         }
                         composable("profile") {
@@ -268,34 +292,112 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// ItemDetails ----------------------------------------------------------------
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ItemDetailsScreen(
+    title: String,
+    description: String,
+    price: String,
+    condition: String,
+    seller: String,
+    onBackClicked: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClicked) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            Button(
+                onClick = { /* Handle contact seller */ },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text("Contact Seller", fontSize = 18.sp, color = Color.White)
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            // Item Image
+            Image(
+                painter = rememberAsyncImagePainter("https://via.placeholder.com/400"),
+                contentDescription = "Item Image",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.LightGray)
+            )
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Item Details
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+            Text("Price: $$price", fontSize = 18.sp, color = Color.Gray)
+            Text("Condition: $condition", fontSize = 16.sp, color = Color.Gray)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(description, fontSize = 16.sp)
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Seller Contact
+            Divider(color = Color.Gray)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Seller Contact", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Text("Seller: $seller", fontSize = 16.sp)
+        }
+    }
+}
+// ItemDetails ----------------------------------------------------------------
 
 
 
 
 @Composable
-fun HomeScreen(userName: String, onLogoutClicked: () -> Unit) {
+fun HomeScreen(
+    userName: String,
+    onLogoutClicked: () -> Unit,
+    onProductClicked: (Product) -> Unit // Add this line
+) {
     // Example Product List
     val productList = listOf(
         Product(
             title = "Vintage Record Player",
             price = "$120",
             description = "A classic piece for music lovers, complete with vinyl collection.",
+            seller = "John Doe",
             imageUrl = "https://via.placeholder.com/150"
         ),
         Product(
             title = "Electric Guitar",
             price = "$300",
             description = "Perfect for beginners and professionals alike, includes amp.",
+            seller = "Jane Smith",
             imageUrl = "https://via.placeholder.com/150"
         ),
         Product(
             title = "DSLR Camera",
             price = "$450",
             description = "Capture stunning photos with this high-quality camera, includes lenses.",
+            seller = "Alice Doe",
             imageUrl = "https://via.placeholder.com/150"
         )
     )
+
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Search Bar
@@ -325,9 +427,12 @@ fun HomeScreen(userName: String, onLogoutClicked: () -> Unit) {
             modifier = Modifier.padding(8.dp)
         ) {
             items(productList) { product ->
-                ProductItem(product = product) // Use ProductItem here
+                ProductItem(product = product, onClick = {
+                    onProductClicked(product) // Call the onProductClicked function
+                })
             }
         }
+
     }
 }
 
@@ -345,26 +450,15 @@ fun FilterButton(text: String) {
 
 // Product Item Composable
 @Composable
-fun ProductItem(product: Product) {
-    var isHovered by remember { mutableStateOf(false) }
+fun ProductItem(product: Product, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .background(
-                if (isHovered) Color(0xFFEDEDED) else Color.White,
-                shape = RoundedCornerShape(12.dp)
-            )
-            .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        isHovered = event.type == PointerEventType.Enter
-                    }
-                }
-            }
             .clip(RoundedCornerShape(12.dp))
+            .background(Color.White)
+            .clickable { onClick() } // Trigger the click listener
+            .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
     ) {
         Row(
             modifier = Modifier
@@ -373,18 +467,14 @@ fun ProductItem(product: Product) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             // Product Image
-            Box(
+            Image(
+                painter = rememberAsyncImagePainter(product.imageUrl),
+                contentDescription = product.title,
                 modifier = Modifier
                     .size(80.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color.LightGray)
-            ) {
-                Image(
-                    painter = rememberAsyncImagePainter(product.imageUrl),
-                    contentDescription = product.title,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            )
+
             // Product Description
             Column(
                 modifier = Modifier
@@ -392,12 +482,13 @@ fun ProductItem(product: Product) {
                     .padding(start = 8.dp)
             ) {
                 Text(product.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text(product.price, fontSize = 16.sp, color = Color.Gray)
-                Text(product.description, fontSize = 14.sp, maxLines = 2)
+                Text("Price: ${product.price}", fontSize = 16.sp, color = Color.Gray)
+                Text(product.description, maxLines = 2, fontSize = 14.sp)
             }
         }
     }
 }
+
 
 
 // Product Data Class
@@ -405,7 +496,8 @@ data class Product(
     val title: String,
     val price: String,
     val description: String,
-    val imageUrl: String
+    val imageUrl: String,
+    val seller: String
 )
 
 // class for Navigation Items
@@ -415,23 +507,7 @@ data class BottomNavigationItem(
     val unselectedIcon: ImageVector,
 )
 
-@Composable
-fun BottomNavigationGraph(
-    navController: NavHostController,
-    paddingValues: PaddingValues
-) {
-    Box(modifier = Modifier.padding(paddingValues)) {
-        NavHost(
-            navController = navController,
-            startDestination = "home"
-        ) {
-            composable("home") { HomeScreen(userName = "Gavin", onLogoutClicked = {}) }
-            composable("profile") { ProfileScreen() }
-            composable("cart") { CartScreen() }
-            composable("selling") { SellingScreen(navController) }
-        }
-    }
-}
+
 
 
 

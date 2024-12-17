@@ -1,4 +1,5 @@
 package com.example.bumarketplace
+import androidx.compose.ui.draw.clip
 
 import android.content.Intent
 import android.os.Bundle
@@ -92,7 +93,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var navController: NavHostController
-
+    private val userNameState = mutableStateOf("Guest")
+    private val profileImageUrlState = mutableStateOf("")
     companion object {
         private const val RC_SIGN_IN = 9001
         private const val TAG = "GoogleSignIn"
@@ -138,7 +140,15 @@ class MainActivity : ComponentActivity() {
                                 onLogoutClicked = { logout() }
                             )
                         }
-                        composable("profile") { ProfileScreen() }
+                        composable("profile") {
+                            ProfileScreen(
+                                userName = userNameState.value,
+                                profileImageUrl = profileImageUrlState.value
+                            )
+                        }
+
+
+
                         composable("search") { SearchScreen() }
                         composable("inbox") { InboxScreen() }
                         composable("selling") { SellingScreen(navController) }
@@ -166,8 +176,11 @@ class MainActivity : ComponentActivity() {
                         if (authTask.isSuccessful) {
                             Log.d(TAG, "signInWithCredential:success")
                             val user = firebaseAuth.currentUser
-                            val userName = user?.displayName ?: "Guest" // Get user name
-                            navController.navigate("home/$userName") // Pass user name to HomeScreen
+                            userNameState.value = user?.displayName ?: "Guest"
+                            profileImageUrlState.value = user?.photoUrl?.toString() ?: ""
+
+                            // Correct navigation to match the route
+                            navController.navigate("home/${userNameState.value}")
                         } else {
                             Log.w(TAG, "signInWithCredential:failure", authTask.exception)
                         }
@@ -177,6 +190,8 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+
 
     private fun logout() {
         firebaseAuth.signOut() // Sign out from Firebase
@@ -357,6 +372,101 @@ fun HomeScreen(userName: String, onLogoutClicked: () -> Unit) {
     }
 }
 
+@Composable
+fun ProfileScreen(userName: String, profileImageUrl: String?) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        ProfileHeader(userName = userName, profileImageUrl = profileImageUrl)
+        Spacer(modifier = Modifier.height(24.dp))
+        SectionTitle(title = "Saved Items")
+        ListItemRow(items = listOf("Modern Table Lamp", "Vintage Clock"))
+
+        Spacer(modifier = Modifier.height(16.dp))
+        SectionTitle(title = "Purchases")
+        ListItemRow(items = listOf("Leather Wallet", "Wireless Earbuds"))
+
+        Spacer(modifier = Modifier.height(16.dp))
+        SectionTitle(title = "Selling")
+        ListItemRow(items = listOf("Vintage Stamps"))
+    }
+}
+
+
+@Composable
+fun ProfileHeader(userName: String, profileImageUrl: String?) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (profileImageUrl != null) {
+            // Load profile image using Coil
+            Image(
+                painter = rememberAsyncImagePainter(profileImageUrl),
+                contentDescription = "Profile Picture",
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+            )
+        } else {
+            // Default placeholder if no profile image
+            Icon(
+                imageVector = Icons.Default.AccountCircle,
+                contentDescription = "Default Profile Picture",
+                tint = Color.Gray,
+                modifier = Modifier.size(72.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = userName,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
+            Text(
+                text = "Member since 2024",
+                style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
+            )
+        }
+    }
+}
+
+@Composable
+fun SectionTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        modifier = Modifier.padding(vertical = 8.dp)
+    )
+}
+
+@Composable
+fun ListItemRow(items: List<String>) {
+    LazyRow {
+        items(items) { item ->
+            Card(
+                modifier = Modifier
+                    .padding(8.dp)
+                    .size(120.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFEDEDED)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = item,
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+    }
+}
 
 
 

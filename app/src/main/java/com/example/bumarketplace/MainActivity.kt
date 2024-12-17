@@ -92,6 +92,11 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import com.example.bumarketplace.MainActivity.Companion.TAG
 
+//Firebase Database imports:
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.LaunchedEffect
+import com.google.gson.Gson
+
 
 data class User(
     val userId: String,
@@ -111,14 +116,6 @@ data class MarketItem(
 )
 
 
-object FirebaseManager {
-    val firebaseAuth: FirebaseAuth by lazy {
-        FirebaseAuth.getInstance()
-    }
-    val database: DatabaseReference by lazy {
-        FirebaseDatabase.getInstance().getReference()
-    }
-}
 
 
 class MainActivity : ComponentActivity() {
@@ -178,31 +175,36 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 userName = userName,
                                 onLogoutClicked = { logout() },
-                                onProductClicked = { product ->
-                                    navController.navigate(
-                                        "item_details/${product.title}/${product.description}/${product.price}/New/${product.seller}"
-                                    )
-                                }
-                            )
-                        }
-                        composable("item_details/{title}/{description}/{price}/{condition}/{seller}") { backStackEntry ->
-                            // Retrieve arguments
-                            val title = backStackEntry.arguments?.getString("title") ?: "No Title"
-                            val description = backStackEntry.arguments?.getString("description") ?: "No Description"
-                            val price = backStackEntry.arguments?.getString("price") ?: "0"
-                            val condition = backStackEntry.arguments?.getString("condition") ?: "Unknown"
-                            val seller = backStackEntry.arguments?.getString("seller") ?: "Unknown Seller"
 
-                            // Pass to ItemDetailsScreen
-                            ItemDetailsScreen(
-                                title = title,
-                                description = description,
-                                price = price,
-                                condition = condition,
-                                seller = seller,
-                                onBackClicked = { navController.popBackStack() }
+                                onProductClicked = { product ->
+                                val gson = Gson()
+                                val productJson = gson.toJson(product)
+
+                                navController.navigate("item_details/$productJson")
+                            }
                             )
                         }
+                        composable("item_details/{productJson}") { backStackEntry ->
+                            val productJson = backStackEntry.arguments?.getString("productJson")
+                            val product = productJson?.let { json ->
+                                try {
+                                    Gson().fromJson(json, Product::class.java)
+                                } catch (e: Exception) {
+                                    Log.e("Navigation", "Failed to parse product JSON", e)
+                                    null
+                                }
+                            }
+
+                            if (product != null) {
+                                ItemDetailsScreen(
+                                    product = product,
+                                    onBackClicked = { navController.popBackStack() }
+                                )
+                            } else {
+                                Text("Failed to load product details", color = Color.Red)
+                            }
+                        }
+
                         composable("profile") {
                             ProfileScreen(
                                 userName = userNameState.value,
@@ -291,22 +293,41 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+// FirebaseManager - Inside MainActivity.kt but outside of the MainActivity class
+object FirebaseManager {
+    private val database: DatabaseReference by lazy {
+        FirebaseDatabase.getInstance().getReference("items") // Target 'items' node
+    }
+
+    fun fetchItems(
+        onSuccess: (List<Product>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        database.get().addOnSuccessListener { snapshot ->
+            val itemsList = mutableListOf<Product>()
+            snapshot.children.forEach { child ->
+                val item = child.getValue(Product::class.java) // Map to Product class
+                item?.let { itemsList.add(it) }
+            }
+            onSuccess(itemsList)
+        }.addOnFailureListener { exception ->
+            Log.e("FirebaseManager", "Error fetching items: ${exception.message}")
+            onFailure(exception)
+        }
+    }
+}
 
 // ItemDetails ----------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemDetailsScreen(
-    title: String,
-    description: String,
-    price: String,
-    condition: String,
-    seller: String,
+    product: Product,
     onBackClicked: () -> Unit
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(title) },
+                title = { Text(product.title) },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -332,25 +353,28 @@ fun ItemDetailsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // Item Image
-            Image(
-                painter = rememberAsyncImagePainter("https://via.placeholder.com/400"),
-                contentDescription = "Item Image",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.LightGray)
-            )
+            // Item Image Carousel
+            LazyRow {
+                items(product.images) { imageUrl ->
+                    Image(
+                        painter = rememberAsyncImagePainter(imageUrl),
+                        contentDescription = "Product Image",
+                        modifier = Modifier
+                            .size(300.dp)
+                            .padding(end = 8.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             // Item Details
-            Text(title, fontWeight = FontWeight.Bold, fontSize = 24.sp)
-            Text("Price: $$price", fontSize = 18.sp, color = Color.Gray)
-            Text("Condition: $condition", fontSize = 16.sp, color = Color.Gray)
+            Text(product.title, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+            Text("Price: $${product.price}", fontSize = 18.sp, color = Color.Gray)
+            Text("Condition: ${product.condition}", fontSize = 16.sp, color = Color.Gray)
             Spacer(modifier = Modifier.height(8.dp))
-            Text(description, fontSize = 16.sp)
+            Text(product.description, fontSize = 16.sp)
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -358,10 +382,11 @@ fun ItemDetailsScreen(
             Divider(color = Color.Gray)
             Spacer(modifier = Modifier.height(16.dp))
             Text("Seller Contact", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            Text("Seller: $seller", fontSize = 16.sp)
+            Text("Seller: ${product.seller}", fontSize = 16.sp)
         }
     }
 }
+
 // ItemDetails ----------------------------------------------------------------
 
 
@@ -373,30 +398,20 @@ fun HomeScreen(
     onLogoutClicked: () -> Unit,
     onProductClicked: (Product) -> Unit // Add this line
 ) {
+    val itemsState = remember { mutableStateOf<List<Product>>(emptyList()) }
+    val errorState = remember { mutableStateOf<String?>(null) }
+
     // Example Product List
-    val productList = listOf(
-        Product(
-            title = "Vintage Record Player",
-            price = "$120",
-            description = "A classic piece for music lovers, complete with vinyl collection.",
-            seller = "John Doe",
-            imageUrl = "https://via.placeholder.com/150"
-        ),
-        Product(
-            title = "Electric Guitar",
-            price = "$300",
-            description = "Perfect for beginners and professionals alike, includes amp.",
-            seller = "Jane Smith",
-            imageUrl = "https://via.placeholder.com/150"
-        ),
-        Product(
-            title = "DSLR Camera",
-            price = "$450",
-            description = "Capture stunning photos with this high-quality camera, includes lenses.",
-            seller = "Alice Doe",
-            imageUrl = "https://via.placeholder.com/150"
+    LaunchedEffect(Unit) {
+        FirebaseManager.fetchItems(
+            onSuccess = { fetchedItems ->
+                itemsState.value = fetchedItems
+            },
+            onFailure = { exception ->
+                errorState.value = exception.message
+            }
         )
-    )
+    }
 
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -426,10 +441,10 @@ fun HomeScreen(
         LazyColumn(
             modifier = Modifier.padding(8.dp)
         ) {
-            items(productList) { product ->
-                ProductItem(product = product, onClick = {
-                    onProductClicked(product) // Call the onProductClicked function
-                })
+            items(itemsState.value) { product ->
+                ProductItem(product = product) {
+                    onProductClicked(product)
+                }
             }
         }
 
@@ -451,54 +466,50 @@ fun FilterButton(text: String) {
 // Product Item Composable
 @Composable
 fun ProductItem(product: Product, onClick: () -> Unit) {
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
-            .clickable { onClick() } // Trigger the click listener
-            .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
+            .clickable { onClick() }
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Product Image
-            Image(
-                painter = rememberAsyncImagePainter(product.imageUrl),
-                contentDescription = product.title,
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp))
-            )
+        // Use the first image or a placeholder if the list is empty
+        val imageUrl = product.images.firstOrNull() ?: "https://via.placeholder.com/150"
 
-            // Product Description
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 8.dp)
-            ) {
-                Text(product.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("Price: ${product.price}", fontSize = 16.sp, color = Color.Gray)
-                Text(product.description, maxLines = 2, fontSize = 14.sp)
-            }
+        Image(
+            painter = rememberAsyncImagePainter(imageUrl),
+            contentDescription = "Product Image",
+            modifier = Modifier
+                .size(100.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.LightGray)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Product Details
+        Column(modifier = Modifier.weight(1f)) {
+            Text(product.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Price: $${product.price}", fontSize = 16.sp, color = Color.Gray)
+            Text(product.description, fontSize = 14.sp, maxLines = 2)
         }
     }
 }
 
 
 
+
 // Product Data Class
 data class Product(
-    val title: String,
-    val price: String,
-    val description: String,
-    val imageUrl: String,
-    val seller: String
+    val title: String = "",
+    val category: String = "",
+    val condition: String = "",
+    val description: String = "",
+    val price: Int = 0,
+    val quantity: Int = 1,
+    val seller: String = "",
+    val images: List<String> = emptyList() // Add the images property as a list of strings
 )
+
 
 // class for Navigation Items
 data class BottomNavigationItem(

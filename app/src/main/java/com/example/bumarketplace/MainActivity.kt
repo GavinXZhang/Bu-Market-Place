@@ -213,7 +213,8 @@ class MainActivity : ComponentActivity() {
                                 condition = condition,
                                 quantity = quantity,
                                 images = listOf(image), // Use the first image passed
-                                onBackClicked = { navController.popBackStack() }
+                                onBackClicked = { navController.popBackStack() },
+                                seller = seller
                             )
                         }
 
@@ -479,6 +480,7 @@ fun HomeScreen(
         ) {
             items(itemsState.value) { product ->
                 ProductItem(product, onClick = { onProductClicked(product) })
+
             }
         }
     }

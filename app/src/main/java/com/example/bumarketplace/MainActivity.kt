@@ -128,7 +128,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var navController: NavHostController
     private val userNameState = mutableStateOf("Guest")
-    private val userEmailState = mutableStateOf("")
+    private val userEmailState = mutableStateOf("example@email.com")
 
     private val profileImageUrlState = mutableStateOf("")
 
@@ -229,6 +229,17 @@ class MainActivity : ComponentActivity() {
                                 userEmail = userEmailState.value,
                                 profileImageUrl = profileImageUrlState.value,
                                 onLogoutClicked = { logout()
+                                },
+                                onProductClicked = { product ->
+                                    navController.navigate(
+                                        "item_details/${Uri.encode(product.title)}/" +
+                                                "${Uri.encode(product.description)}/" +
+                                                "${product.price}/" +
+                                                "${Uri.encode(product.condition)}/" +
+                                                "${product.quantity}/" +
+                                                "${Uri.encode(product.images.firstOrNull() ?: "")}/" +
+                                                "${Uri.encode(product.seller)}"
+                                    )
                                 }
                             )
                         }
@@ -277,6 +288,7 @@ class MainActivity : ComponentActivity() {
                             Log.d(TAG, "signInWithCredential:success")
                             val user = firebaseAuth.currentUser
                             userNameState.value = user?.displayName ?: "Guest"
+                            userEmailState.value = user?.email ?: "No Email"
                             profileImageUrlState.value = user?.photoUrl?.toString() ?: ""
 
                             val newUser = user?.let {
@@ -626,22 +638,21 @@ fun NavigationBar(navController: NavController, userNameState: MutableState<Stri
         }
     }
 }
-
 @Composable
 fun ProfileScreen(
     userName: String,
     userEmail: String,
     profileImageUrl: String?,
-    onLogoutClicked: () -> Unit
+    onLogoutClicked: () -> Unit,
+    onProductClicked: (Product) -> Unit // Callback to open the product details screen
 ) {
     val userItems = remember { mutableStateOf<List<Product>>(emptyList()) }
 
     // Fetch items on initialization or when userName changes
-    LaunchedEffect(userName) {
+    LaunchedEffect(userName, userEmail) {
         FirebaseManager.fetchUserItems(userName, onSuccess = {
             userItems.value = it
         }, onFailure = {
-            // Handle failure if needed
             Log.e("ProfileScreen", "Failed to fetch items for user $userName")
         })
     }
@@ -649,21 +660,33 @@ fun ProfileScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Header with profile image and name
         ProfileHeader(userName, profileImageUrl)
         Spacer(modifier = Modifier.height(16.dp))
         ProfileDetail("Email", userEmail)
+
+        // Section for "Your Listings"
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Your Listings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+
         if (userItems.value.isNotEmpty()) {
-            Text("Your Listings", style = MaterialTheme.typography.titleLarge)
-            userItems.value.forEach { product ->
-                Text(product.title, style = MaterialTheme.typography.bodyMedium)
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(userItems.value) { product ->
+                    UserListingCard(product = product, onClick = { onProductClicked(product) })
+                }
             }
         } else {
             Text("You have no listings yet.", style = MaterialTheme.typography.bodyMedium)
         }
+
         Spacer(modifier = Modifier.height(32.dp))
         Button(
             onClick = onLogoutClicked,
@@ -675,11 +698,58 @@ fun ProfileScreen(
     }
 }
 
+@Composable
+fun UserListingCard(product: Product, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(8.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Image on the left
+            val imageUrl = product.images.firstOrNull() ?: "https://via.placeholder.com/100"
+            Image(
+                painter = rememberAsyncImagePainter(imageUrl),
+                contentDescription = "Product Image",
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.LightGray)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Product Title
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = product.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Price: $${product.price}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun ProfileHeader(userName: String, profileImageUrl: String?) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(8.dp),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (profileImageUrl != null) {
@@ -699,17 +769,18 @@ fun ProfileHeader(userName: String, profileImageUrl: String?) {
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Text(userName, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+        Text(userName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 fun ProfileDetail(label: String, value: String) {
-    Column(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text(label, style = MaterialTheme.typography.bodyLarge)
-        Text(value, style = MaterialTheme.typography.bodyMedium)
+    Row(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text("$label: ", fontWeight = FontWeight.Bold)
+        Text(value)
     }
 }
+
 
 
 

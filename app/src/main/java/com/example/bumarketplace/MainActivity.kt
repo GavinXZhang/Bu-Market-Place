@@ -188,6 +188,11 @@ class MainActivity : ComponentActivity() {
                                                 "${Uri.encode(product.images.firstOrNull() ?: "")}/" +
                                                 "${Uri.encode(product.seller)}"
                                     )
+                                },
+                                onSearchSubmitted = { query ->
+                                    // Define what happens when the user submits a search query
+                                    Log.d("Search", "User searched for: $query")
+                                    // You can update your list or perform any other action based on the search query here
                                 }
                             )
                         }
@@ -412,72 +417,71 @@ fun ItemDetailsScreen(
 
 // ItemDetails ----------------------------------------------------------------
 
-
 @Composable
 fun HomeScreen(
     userName: String,
     onLogoutClicked: () -> Unit,
-    onProductClicked: (Product) -> Unit // Add this line
+    onProductClicked: (Product) -> Unit,
+    onSearchSubmitted: (String) -> Unit
 ) {
     val itemsState = remember { mutableStateOf<List<Product>>(emptyList()) }
-    val errorState = remember { mutableStateOf<String?>(null) }
+    val searchText = remember { mutableStateOf("") }
 
-    // Example Product List
-    LaunchedEffect(Unit) {
+    // Fetch items initially and whenever the search text changes
+    LaunchedEffect(searchText.value) {
         FirebaseManager.fetchItems(
             onSuccess = { fetchedItems ->
-                itemsState.value = fetchedItems
+                if (searchText.value.isEmpty()) {
+                    itemsState.value = fetchedItems
+                } else {
+                    val filteredItems = fetchedItems.filter {
+                        it.title.contains(searchText.value, ignoreCase = true)
+                    }
+                    itemsState.value = filteredItems
+                    filteredItems.forEach { product ->
+                        Log.d("SearchResults", "Matching Product: ${product.title}")
+                    }
+                }
             },
             onFailure = { exception ->
-                errorState.value = exception.message
+                Log.e("HomeScreen", "Failed to fetch items: ${exception.message}")
             }
         )
     }
 
-
     Column(modifier = Modifier.fillMaxSize()) {
-        // Search Bar
-        OutlinedTextField(
-            value = "",
-            onValueChange = {},
-            placeholder = { Text("Search...") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        )
-
-        // Filter Buttons
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            FilterButton("All Categories")
-            FilterButton("Sort")
-            FilterButton("New Listing")
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            OutlinedTextField(
+                value = searchText.value,
+                onValueChange = { searchText.value = it },
+                modifier = Modifier.weight(1f),
+                label = { Text("Search Products") },
+                singleLine = true
+            )
+            Button(
+                onClick = {
+                    onSearchSubmitted(searchText.value)
+                    // Optional: You might handle additional logic here if needed
+                },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Text("Search")
+            }
         }
 
         // Product List
-        // Use LazyColumn as the primary scrollable container
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp) // Adds spacing between items
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(itemsState.value) { product ->
-                ProductItem(product = product) {
-                    onProductClicked(product)
-                    Log.d("ProductDebug", "Product: $product")
-
-                }
+                ProductItem(product, onClick = { onProductClicked(product) })
             }
         }
-
     }
 }
-
 
 
 // Helper Composable for Filter Buttons

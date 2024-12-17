@@ -97,7 +97,6 @@ import com.example.bumarketplace.MainActivity.Companion.TAG
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.res.painterResource
-import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.google.gson.Gson
 
 
@@ -128,8 +127,6 @@ class MainActivity : ComponentActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var navController: NavHostController
     private val userNameState = mutableStateOf("Guest")
-    private val userEmailState = mutableStateOf("example@email.com")
-
     private val profileImageUrlState = mutableStateOf("")
 
 
@@ -226,21 +223,8 @@ class MainActivity : ComponentActivity() {
                         composable("profile") {
                             ProfileScreen(
                                 userName = userNameState.value,
-                                userEmail = userEmailState.value,
                                 profileImageUrl = profileImageUrlState.value,
-                                onLogoutClicked = { logout()
-                                },
-                                onProductClicked = { product ->
-                                    navController.navigate(
-                                        "item_details/${Uri.encode(product.title)}/" +
-                                                "${Uri.encode(product.description)}/" +
-                                                "${product.price}/" +
-                                                "${Uri.encode(product.condition)}/" +
-                                                "${product.quantity}/" +
-                                                "${Uri.encode(product.images.firstOrNull() ?: "")}/" +
-                                                "${Uri.encode(product.seller)}"
-                                    )
-                                }
+                                onLogoutClicked = { logout() } // Pass the logout function here
                             )
                         }
 
@@ -288,7 +272,6 @@ class MainActivity : ComponentActivity() {
                             Log.d(TAG, "signInWithCredential:success")
                             val user = firebaseAuth.currentUser
                             userNameState.value = user?.displayName ?: "Guest"
-                            userEmailState.value = user?.email ?: "No Email"
                             profileImageUrlState.value = user?.photoUrl?.toString() ?: ""
 
                             val newUser = user?.let {
@@ -344,29 +327,6 @@ object FirebaseManager {
             }
             .addOnFailureListener { exception ->
                 Log.e("FirebaseDebug", "Error fetching items: ${exception.message}")
-                onFailure(exception)
-            }
-    }
-
-    fun fetchUserItems(
-        userName: String,
-        onSuccess: (List<Product>) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        database.get()
-            .addOnSuccessListener { snapshot ->
-                val userItems = mutableListOf<Product>()
-                for (childSnapshot in snapshot.children) {
-                    val item = childSnapshot.getValue(Product::class.java)
-                    if (item != null && item.seller == userName) {
-                        userItems.add(item)
-                        Log.d("UserItems", "Item: ${item.title} by ${item.seller}")
-                    }
-                }
-                onSuccess(userItems)
-            }
-            .addOnFailureListener { exception ->
-                Log.e("FirebaseDebug", "Error fetching user items: ${exception.message}")
                 onFailure(exception)
             }
     }
@@ -638,121 +598,74 @@ fun NavigationBar(navController: NavController, userNameState: MutableState<Stri
         }
     }
 }
+
+
 @Composable
 fun ProfileScreen(
     userName: String,
-    userEmail: String,
     profileImageUrl: String?,
-    onLogoutClicked: () -> Unit,
-    onProductClicked: (Product) -> Unit // Callback to open the product details screen
+    onLogoutClicked: () -> Unit // Pass logout logic here
 ) {
-    val userItems = remember { mutableStateOf<List<Product>>(emptyList()) }
-
-    // Fetch items on initialization or when userName changes
-    LaunchedEffect(userName, userEmail) {
-        FirebaseManager.fetchUserItems(userName, onSuccess = {
-            userItems.value = it
-        }, onFailure = {
-            Log.e("ProfileScreen", "Failed to fetch items for user $userName")
-        })
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Header with profile image and name
-        ProfileHeader(userName, profileImageUrl)
+        // Header Section
+        ProfileHeader(userName = userName, profileImageUrl = profileImageUrl)
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Saved Items Section
+        SectionTitle(title = "Saved Items")
+        ListItemRow(items = listOf("Modern Table Lamp", "Vintage Clock"))
+
         Spacer(modifier = Modifier.height(16.dp))
-        ProfileDetail("Email", userEmail)
 
-        // Section for "Your Listings"
+        // Purchases Section
+        SectionTitle(title = "Purchases")
+        ListItemRow(items = listOf("Leather Wallet", "Wireless Earbuds"))
+
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Your Listings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
 
-        if (userItems.value.isNotEmpty()) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(userItems.value) { product ->
-                    UserListingCard(product = product, onClick = { onProductClicked(product) })
-                }
-            }
-        } else {
-            Text("You have no listings yet.", style = MaterialTheme.typography.bodyMedium)
-        }
+        // Selling Section
+        SectionTitle(title = "Selling")
+        ListItemRow(items = listOf("Vintage Stamps"))
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(32.dp)) // Add some spacing before Logout Button
+
+        // Logout Button at the Bottom
         Button(
-            onClick = onLogoutClicked,
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Logout", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-fun UserListingCard(product: Product, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Row(
+            onClick = { onLogoutClicked() },
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
             modifier = Modifier
-                .padding(8.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
         ) {
-            // Image on the left
-            val imageUrl = product.images.firstOrNull() ?: "https://via.placeholder.com/100"
-            Image(
-                painter = rememberAsyncImagePainter(imageUrl),
-                contentDescription = "Product Image",
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.LightGray)
+            Text(
+                text = "Logout",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
             )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Product Title
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = product.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Price: $${product.price}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-            }
         }
     }
 }
+
+
+
 
 @Composable
 fun ProfileHeader(userName: String, profileImageUrl: String?) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (profileImageUrl != null) {
+            // Load profile image using Coil
             Image(
                 painter = rememberAsyncImagePainter(profileImageUrl),
                 contentDescription = "Profile Picture",
@@ -761,6 +674,7 @@ fun ProfileHeader(userName: String, profileImageUrl: String?) {
                     .clip(CircleShape)
             )
         } else {
+            // Default placeholder if no profile image
             Icon(
                 imageVector = Icons.Default.AccountCircle,
                 contentDescription = "Default Profile Picture",
@@ -769,26 +683,27 @@ fun ProfileHeader(userName: String, profileImageUrl: String?) {
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Text(userName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Column {
+            Text(
+                text = userName,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
+            Text(
+                text = "Member since 2024",
+                style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
+            )
+        }
     }
 }
-
-@Composable
-fun ProfileDetail(label: String, value: String) {
-    Row(modifier = Modifier.padding(vertical = 8.dp)) {
-        Text("$label: ", fontWeight = FontWeight.Bold)
-        Text(value)
-    }
-}
-
-
-
 
 @Composable
 fun SectionTitle(title: String) {
-    Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(vertical = 8.dp))
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        modifier = Modifier.padding(vertical = 8.dp)
+    )
 }
-
 
 @Composable
 fun ListItemRow(items: List<String>) {
@@ -814,6 +729,13 @@ fun ListItemRow(items: List<String>) {
 }
 
 
+
+@Composable
+fun ProfileScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Profile Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    }
+}
 
 
 
@@ -1724,17 +1646,8 @@ fun formatExpiryDateWithCaret(input: TextFieldValue): TextFieldValue {
 
 
 
-
-
 @Composable
 fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
-    // Load the Lottie animation
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.firstpageanimation))
-    val progress by animateLottieCompositionAsState(
-        composition = composition,
-        iterations = LottieConstants.IterateForever
-    )
-
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         content = { paddingValues ->
@@ -1746,45 +1659,13 @@ fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Add Lottie Animation Here
-                LottieAnimation(
-                    composition = composition,
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                )
-
+                Text("Login to BU Marketplace", fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Discover BUMarket",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Connect with BU students to buy and sell",
-                    fontSize = 16.sp,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-
                 Button(
-                    onClick = { onGoogleSignInClicked() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(32.dp),
+                    onClick = onGoogleSignInClicked,
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF570303))
                 ) {
-                    Text(
-                        text = "Sign-Up with BU Google",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontFamily = FontFamily.SansSerif,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Sign in with Google", color = Color.White)
                 }
             }
         }

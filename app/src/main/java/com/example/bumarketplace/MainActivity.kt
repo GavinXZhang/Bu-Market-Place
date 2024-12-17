@@ -37,16 +37,13 @@ import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
-
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Inbox
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sell
 
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -55,7 +52,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.border
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.PointerEventType
-// import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 import com.google.firebase.database.FirebaseDatabase
@@ -82,6 +80,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.text.AnnotatedString
@@ -93,6 +92,13 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import com.example.bumarketplace.MainActivity.Companion.TAG
+
+//Firebase Database imports:
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.res.painterResource
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.google.gson.Gson
 
 
 data class User(
@@ -109,18 +115,11 @@ data class MarketItem(
     val images: List<String>,
     val category: String,
     val condition: String,
-    val quantity: Int
+    val quantity: Int,
+    val seller: String
 )
 
 
-object FirebaseManager {
-    val firebaseAuth: FirebaseAuth by lazy {
-        FirebaseAuth.getInstance()
-    }
-    val database: DatabaseReference by lazy {
-        FirebaseDatabase.getInstance().getReference()
-    }
-}
 
 
 class MainActivity : ComponentActivity() {
@@ -129,6 +128,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var navController: NavHostController
     private val userNameState = mutableStateOf("Guest")
+    private val userEmailState = mutableStateOf("example@email.com")
+
     private val profileImageUrlState = mutableStateOf("")
 
 
@@ -179,22 +180,75 @@ class MainActivity : ComponentActivity() {
                             val userName = backStackEntry.arguments?.getString("userName") ?: "Guest"
                             HomeScreen(
                                 userName = userName,
-                                onLogoutClicked = { logout() }
+                                onLogoutClicked = { logout() },
+                                onProductClicked = { product ->
+                                    // Pass parameters explicitly and encode for safety
+                                    navController.navigate(
+                                        "item_details/${Uri.encode(product.title)}/" +
+                                                "${Uri.encode(product.description)}/" +
+                                                "${product.price}/" +
+                                                "${Uri.encode(product.condition)}/" +
+                                                "${product.quantity}/" +
+                                                "${Uri.encode(product.images.firstOrNull() ?: "")}/" +
+                                                "${Uri.encode(product.seller)}"
+                                    )
+                                },
+                                onSearchSubmitted = { query ->
+                                    // Define what happens when the user submits a search query
+                                    Log.d("Search", "User searched for: $query")
+                                    // You can update your list or perform any other action based on the search query here
+                                }
                             )
                         }
+                        composable("item_details/{title}/{description}/{price}/{condition}/{quantity}/{image}/{seller}") { backStackEntry ->
+                            val title = backStackEntry.arguments?.getString("title") ?: "No Title"
+                            val description = backStackEntry.arguments?.getString("description") ?: "No Description"
+                            val price = backStackEntry.arguments?.getString("price") ?: "0"
+                            val condition = backStackEntry.arguments?.getString("condition") ?: "Unknown"
+                            val quantity = backStackEntry.arguments?.getString("quantity")?.toIntOrNull() ?: 0
+                            val image = backStackEntry.arguments?.getString("image") ?: ""
+                            val seller = backStackEntry.arguments?.getString("seller") ?: "Unknown Seller"
+
+                            ItemDetailsScreen(
+                                title = title,
+                                description = description,
+                                price = price,
+                                condition = condition,
+                                quantity = quantity,
+                                images = listOf(image), // Use the first image passed
+                                onBackClicked = { navController.popBackStack() },
+                                seller = seller
+                            )
+                        }
+
+
+
                         composable("profile") {
                             ProfileScreen(
                                 userName = userNameState.value,
+                                userEmail = userEmailState.value,
                                 profileImageUrl = profileImageUrlState.value,
-                                onLogoutClicked = { logout() } // Pass the logout function here
+                                onLogoutClicked = { logout()
+                                },
+                                onProductClicked = { product ->
+                                    navController.navigate(
+                                        "item_details/${Uri.encode(product.title)}/" +
+                                                "${Uri.encode(product.description)}/" +
+                                                "${product.price}/" +
+                                                "${Uri.encode(product.condition)}/" +
+                                                "${product.quantity}/" +
+                                                "${Uri.encode(product.images.firstOrNull() ?: "")}/" +
+                                                "${Uri.encode(product.seller)}"
+                                    )
+                                }
                             )
                         }
 
 
 
 
-                        composable("search") { SearchScreen() }
-                        composable("inbox") { InboxScreen() }
+
+                        composable("cart") { CartScreen() }
                         composable("selling") { SellingScreen(navController) }
                         composable("full_selling_screen") { FullSellingScreen(navController) }
                     }
@@ -234,6 +288,7 @@ class MainActivity : ComponentActivity() {
                             Log.d(TAG, "signInWithCredential:success")
                             val user = firebaseAuth.currentUser
                             userNameState.value = user?.displayName ?: "Guest"
+                            userEmailState.value = user?.email ?: "No Email"
                             profileImageUrlState.value = user?.photoUrl?.toString() ?: ""
 
                             val newUser = user?.let {
@@ -270,69 +325,207 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+// FirebaseManager - Inside MainActivity.kt but outside of the MainActivity class
+object FirebaseManager {
+    private val database = FirebaseDatabase.getInstance().getReference("items")
+
+    fun fetchItems(onSuccess: (List<Product>) -> Unit, onFailure: (Exception) -> Unit) {
+        database.get()
+            .addOnSuccessListener { snapshot ->
+                val itemsList = mutableListOf<Product>()
+                for (childSnapshot in snapshot.children) {
+                    val item = childSnapshot.getValue(Product::class.java)
+                    if (item != null) {
+                        itemsList.add(item)
+                    }
+                }
+                Log.d("FirebaseDebug", "Fetched Items: $itemsList") // Log the fetched items
+                onSuccess(itemsList)
+            }
+            .addOnFailureListener { exception ->
+                Log.e("FirebaseDebug", "Error fetching items: ${exception.message}")
+                onFailure(exception)
+            }
+    }
+
+    fun fetchUserItems(
+        userName: String,
+        onSuccess: (List<Product>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        database.get()
+            .addOnSuccessListener { snapshot ->
+                val userItems = mutableListOf<Product>()
+                for (childSnapshot in snapshot.children) {
+                    val item = childSnapshot.getValue(Product::class.java)
+                    if (item != null && item.seller == userName) {
+                        userItems.add(item)
+                        Log.d("UserItems", "Item: ${item.title} by ${item.seller}")
+                    }
+                }
+                onSuccess(userItems)
+            }
+            .addOnFailureListener { exception ->
+                Log.e("FirebaseDebug", "Error fetching user items: ${exception.message}")
+                onFailure(exception)
+            }
+    }
+}
 
 
 
+// ItemDetails ----------------------------------------------------------------
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ItemDetailsScreen(
+    title: String = "No Title",
+    description: String = "No Description",
+    price: String = "0.0",
+    condition: String = "Unknown",
+    seller: String = "Unknown Seller",
+    quantity: Int = 0,
+    images: List<String> = emptyList(),
+    onBackClicked: () -> Unit
+) {
+    Log.d("ItemDetailsDebug", "Title: $title, Description: $description, Price: $price")
+    Log.d("ItemDetailsDebug", "Condition: $condition, Quantity: $quantity, Seller: $seller")
+    Log.d("ItemDetailsDebug", "Images: $images")
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClicked) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            Button(
+                onClick = { /* Handle contact seller */ },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text("Contact Seller", fontSize = 18.sp, color = Color.White)
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            // Images Section
+            LazyRow {
+                items(images) { imageUrl ->
+                    Image(
+                        painter = rememberAsyncImagePainter(imageUrl),
+                        contentDescription = "Product Image",
+                        modifier = Modifier
+                            .size(250.dp)
+                            .padding(8.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.LightGray)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Product Details Section
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+            Text("Price: $$price", fontSize = 18.sp, color = Color.Gray)
+            Text("Condition: $condition", fontSize = 16.sp, color = Color.Gray)
+            Text("Quantity Available: $quantity", fontSize = 16.sp, color = Color.Gray)
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(description, fontSize = 16.sp)
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Seller Contact
+            Divider(color = Color.Gray)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Seller Contact", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Text("Seller: $seller", fontSize = 16.sp)
+        }
+    }
+}
 
 
+// ItemDetails ----------------------------------------------------------------
 
 @Composable
-fun HomeScreen(userName: String, onLogoutClicked: () -> Unit) {
-    // Example Product List
-    val productList = listOf(
-        Product(
-            title = "Vintage Record Player",
-            price = "$120",
-            description = "A classic piece for music lovers, complete with vinyl collection.",
-            imageUrl = "https://via.placeholder.com/150"
-        ),
-        Product(
-            title = "Electric Guitar",
-            price = "$300",
-            description = "Perfect for beginners and professionals alike, includes amp.",
-            imageUrl = "https://via.placeholder.com/150"
-        ),
-        Product(
-            title = "DSLR Camera",
-            price = "$450",
-            description = "Capture stunning photos with this high-quality camera, includes lenses.",
-            imageUrl = "https://via.placeholder.com/150"
+fun HomeScreen(
+    userName: String,
+    onLogoutClicked: () -> Unit,
+    onProductClicked: (Product) -> Unit,
+    onSearchSubmitted: (String) -> Unit
+) {
+    val itemsState = remember { mutableStateOf<List<Product>>(emptyList()) }
+    val searchText = remember { mutableStateOf("") }
+
+    // Fetch items initially and whenever the search text changes
+    LaunchedEffect(searchText.value) {
+        FirebaseManager.fetchItems(
+            onSuccess = { fetchedItems ->
+                if (searchText.value.isEmpty()) {
+                    itemsState.value = fetchedItems
+                } else {
+                    val filteredItems = fetchedItems.filter {
+                        it.title.contains(searchText.value, ignoreCase = true)
+                    }
+                    itemsState.value = filteredItems
+                    filteredItems.forEach { product ->
+                        Log.d("SearchResults", "Matching Product: ${product.title}")
+                    }
+                }
+            },
+            onFailure = { exception ->
+                Log.e("HomeScreen", "Failed to fetch items: ${exception.message}")
+            }
         )
-    )
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Search Bar
-        OutlinedTextField(
-            value = "",
-            onValueChange = {},
-            placeholder = { Text("Search...") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        )
-
-        // Filter Buttons
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            FilterButton("All Categories")
-            FilterButton("Sort")
-            FilterButton("New Listing")
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            OutlinedTextField(
+                value = searchText.value,
+                onValueChange = { searchText.value = it },
+                modifier = Modifier.weight(1f),
+                label = { Text("Search Products") },
+                singleLine = true
+            )
+            Button(
+                onClick = {
+                    onSearchSubmitted(searchText.value)
+                    // Optional: You might handle additional logic here if needed
+                },
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Text("Search")
+            }
         }
 
         // Product List
         LazyColumn(
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(productList) { product ->
-                ProductItem(product = product) // Use ProductItem here
+            items(itemsState.value) { product ->
+                ProductItem(product, onClick = { onProductClicked(product) })
+
             }
         }
     }
 }
+
 
 // Helper Composable for Filter Buttons
 @Composable
@@ -348,68 +541,53 @@ fun FilterButton(text: String) {
 
 // Product Item Composable
 @Composable
-fun ProductItem(product: Product) {
-    var isHovered by remember { mutableStateOf(false) }
-    Box(
+fun ProductItem(product: Product, onClick: () -> Unit) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .background(
-                if (isHovered) Color(0xFFEDEDED) else Color.White,
-                shape = RoundedCornerShape(12.dp)
-            )
-            .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        isHovered = event.type == PointerEventType.Enter
-                    }
-                }
-            }
-            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() }
     ) {
-        Row(
+        // Use the first image or a placeholder if the list is empty
+        val imageUrl = product.images.firstOrNull() ?: "https://via.placeholder.com/150"
+
+        Image(
+            painter = rememberAsyncImagePainter(imageUrl),
+            contentDescription = "Product Image",
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Product Image
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.LightGray)
-            ) {
-                Image(
-                    painter = rememberAsyncImagePainter(product.imageUrl),
-                    contentDescription = product.title,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-            // Product Description
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 8.dp)
-            ) {
-                Text(product.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text(product.price, fontSize = 16.sp, color = Color.Gray)
-                Text(product.description, fontSize = 14.sp, maxLines = 2)
-            }
+                .size(100.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.LightGray)
+        )
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Product Details
+        Column(modifier = Modifier.weight(1f)) {
+            Text(product.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Price: $${product.price}", fontSize = 16.sp, color = Color.Gray)
+            Text(product.description, fontSize = 14.sp, maxLines = 2)
         }
     }
 }
 
 
+
+
 // Product Data Class
 data class Product(
-    val title: String,
-    val price: String,
-    val description: String,
-    val imageUrl: String
+    val title: String = "No Title",
+    val description: String = "No Description",
+    val price: Int = 0,
+    val condition: String = "Unknown",
+    val quantity: Int = 0,
+    val images: List<String> = emptyList(),
+    val seller: String = "Unknown Seller",
+    val category: String = "" // Add this field to match Firebase structure
+
 )
+
+
 
 // class for Navigation Items
 data class BottomNavigationItem(
@@ -418,24 +596,7 @@ data class BottomNavigationItem(
     val unselectedIcon: ImageVector,
 )
 
-@Composable
-fun BottomNavigationGraph(
-    navController: NavHostController,
-    paddingValues: PaddingValues
-) {
-    Box(modifier = Modifier.padding(paddingValues)) {
-        NavHost(
-            navController = navController,
-            startDestination = "home"
-        ) {
-            composable("home") { HomeScreen(userName = "Gavin", onLogoutClicked = {}) }
-            composable("profile") { ProfileScreen() }
-            composable("search") { SearchScreen() }
-            composable("inbox") { InboxScreen() }
-            composable("selling") { SellingScreen(navController) }
-        }
-    }
-}
+
 
 
 
@@ -443,13 +604,13 @@ fun BottomNavigationGraph(
 fun NavigationBar(navController: NavController, userNameState: MutableState<String>) {
     val tabItems = listOf(
         BottomNavigationItem("Home", Icons.Filled.Home, Icons.Outlined.Home),
-        BottomNavigationItem("Profile", Icons.Filled.AccountCircle, Icons.Outlined.AccountCircle),
-        BottomNavigationItem("Search", Icons.Filled.Search, Icons.Outlined.Search),
-        BottomNavigationItem("Inbox", Icons.Filled.Inbox, Icons.Outlined.Inbox),
-        BottomNavigationItem("Selling", Icons.Filled.Sell, Icons.Outlined.Sell)
+        BottomNavigationItem("Selling", Icons.Filled.Sell, Icons.Outlined.Sell),
+        BottomNavigationItem("Cart", Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart),
+        BottomNavigationItem("Profile", Icons.Filled.AccountCircle, Icons.Outlined.AccountCircle)
+
     )
 
-    val routes = listOf("home", "profile", "search", "inbox", "selling")
+    val routes = listOf("home", "selling", "cart", "profile")
     var selectedTabIndex by remember { mutableIntStateOf(0) }
 
     androidx.compose.material3.NavigationBar {
@@ -477,74 +638,121 @@ fun NavigationBar(navController: NavController, userNameState: MutableState<Stri
         }
     }
 }
-
-
 @Composable
 fun ProfileScreen(
     userName: String,
+    userEmail: String,
     profileImageUrl: String?,
-    onLogoutClicked: () -> Unit // Pass logout logic here
+    onLogoutClicked: () -> Unit,
+    onProductClicked: (Product) -> Unit // Callback to open the product details screen
 ) {
+    val userItems = remember { mutableStateOf<List<Product>>(emptyList()) }
+
+    // Fetch items on initialization or when userName changes
+    LaunchedEffect(userName, userEmail) {
+        FirebaseManager.fetchUserItems(userName, onSuccess = {
+            userItems.value = it
+        }, onFailure = {
+            Log.e("ProfileScreen", "Failed to fetch items for user $userName")
+        })
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Header Section
-        ProfileHeader(userName = userName, profileImageUrl = profileImageUrl)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Saved Items Section
-        SectionTitle(title = "Saved Items")
-        ListItemRow(items = listOf("Modern Table Lamp", "Vintage Clock"))
-
+        // Header with profile image and name
+        ProfileHeader(userName, profileImageUrl)
         Spacer(modifier = Modifier.height(16.dp))
+        ProfileDetail("Email", userEmail)
 
-        // Purchases Section
-        SectionTitle(title = "Purchases")
-        ListItemRow(items = listOf("Leather Wallet", "Wireless Earbuds"))
-
+        // Section for "Your Listings"
         Spacer(modifier = Modifier.height(16.dp))
+        Text("Your Listings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
 
-        // Selling Section
-        SectionTitle(title = "Selling")
-        ListItemRow(items = listOf("Vintage Stamps"))
+        if (userItems.value.isNotEmpty()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(userItems.value) { product ->
+                    UserListingCard(product = product, onClick = { onProductClicked(product) })
+                }
+            }
+        } else {
+            Text("You have no listings yet.", style = MaterialTheme.typography.bodyMedium)
+        }
 
-        Spacer(modifier = Modifier.height(32.dp)) // Add some spacing before Logout Button
-
-        // Logout Button at the Bottom
+        Spacer(modifier = Modifier.height(32.dp))
         Button(
-            onClick = { onLogoutClicked() },
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+            onClick = onLogoutClicked,
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "Logout",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("Logout", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
+@Composable
+fun UserListingCard(product: Product, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(8.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Image on the left
+            val imageUrl = product.images.firstOrNull() ?: "https://via.placeholder.com/100"
+            Image(
+                painter = rememberAsyncImagePainter(imageUrl),
+                contentDescription = "Product Image",
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.LightGray)
+            )
 
+            Spacer(modifier = Modifier.width(8.dp))
 
+            // Product Title
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = product.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Price: $${product.price}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun ProfileHeader(userName: String, profileImageUrl: String?) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (profileImageUrl != null) {
-            // Load profile image using Coil
             Image(
                 painter = rememberAsyncImagePainter(profileImageUrl),
                 contentDescription = "Profile Picture",
@@ -553,7 +761,6 @@ fun ProfileHeader(userName: String, profileImageUrl: String?) {
                     .clip(CircleShape)
             )
         } else {
-            // Default placeholder if no profile image
             Icon(
                 imageVector = Icons.Default.AccountCircle,
                 contentDescription = "Default Profile Picture",
@@ -562,27 +769,26 @@ fun ProfileHeader(userName: String, profileImageUrl: String?) {
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(
-                text = userName,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-            )
-            Text(
-                text = "Member since 2024",
-                style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
-            )
-        }
+        Text(userName, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
-fun SectionTitle(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-        modifier = Modifier.padding(vertical = 8.dp)
-    )
+fun ProfileDetail(label: String, value: String) {
+    Row(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text("$label: ", fontWeight = FontWeight.Bold)
+        Text(value)
+    }
 }
+
+
+
+
+@Composable
+fun SectionTitle(title: String) {
+    Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(vertical = 8.dp))
+}
+
 
 @Composable
 fun ListItemRow(items: List<String>) {
@@ -609,49 +815,79 @@ fun ListItemRow(items: List<String>) {
 
 
 
-@Composable
-fun ProfileScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Profile Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    }
-}
+
 
 @Composable
-fun SearchScreen() {
+fun CartScreen() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Search Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-fun InboxScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Inbox Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text("Cart Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 fun SellingScreen(navController: NavController) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp), // Add padding for better spacing
         contentAlignment = Alignment.Center
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text("Selling Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(16.dp))
+            // Placeholder for an empty state image or illustration
+            Image(
+                painter = painterResource(id = R.drawable.logobu), // Replace with your drawable resource
+                contentDescription = "Empty State Illustration",
+                modifier = Modifier
+                    .size(200.dp)
+                    .padding(bottom = 16.dp)
+            )
+
+            // Header Title with enhanced styling
+            Text(
+                text = "Start Selling",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            // Description to guide the user
+            Text(
+                text = "No items listed yet. Tap below to add your first item!",
+                fontSize = 16.sp,
+                color = Color.Gray,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(vertical = 8.dp, horizontal = 24.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // "List an Item" Button with enhanced styling
             Button(
                 onClick = { navController.navigate("full_selling_screen") }, // Navigate to Full Selling Screen
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.padding(16.dp)
+                shape = RoundedCornerShape(16.dp), // Rounded button corners
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
             ) {
-                Text("List an Item", fontSize = 16.sp, color = Color.White)
+                Icon(
+                    imageVector = Icons.Default.Add, // Icon for the button
+                    contentDescription = "Add Icon",
+                    tint = Color.White
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "List an Item",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
             }
         }
     }
 }
+
 
 
 // All Functions from this point on are helper to SellingScreen
@@ -715,6 +951,9 @@ fun FullSellingScreen(navController: NavController) {
 
         return true
     }
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val sellerName = currentUser?.displayName ?: "Unknown Seller"
+
 
     Column(
         modifier = Modifier
@@ -797,6 +1036,7 @@ fun FullSellingScreen(navController: NavController) {
                         category = selectedCategory.value,
                         condition = selectedCondition.value,
                         quantity = itemQuantity.value.toInt(),
+                        seller = sellerName
                     )
                     addItemToDatabase(newItem)
                     // Navigate back to the original selling screen
@@ -1484,8 +1724,17 @@ fun formatExpiryDateWithCaret(input: TextFieldValue): TextFieldValue {
 
 
 
+
+
 @Composable
 fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
+    // Load the Lottie animation
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.firstpageanimation))
+    val progress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = LottieConstants.IterateForever
+    )
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         content = { paddingValues ->
@@ -1497,13 +1746,45 @@ fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Login to BU Marketplace", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                // Add Lottie Animation Here
+                LottieAnimation(
+                    composition = composition,
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Discover BUMarket",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Connect with BU students to buy and sell",
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+
                 Button(
-                    onClick = onGoogleSignInClicked,
+                    onClick = { onGoogleSignInClicked() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(32.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF570303))
                 ) {
-                    Text("Sign in with Google", color = Color.White)
+                    Text(
+                        text = "Sign-Up with BU Google",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }

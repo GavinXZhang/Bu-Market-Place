@@ -80,6 +80,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.text.AnnotatedString
@@ -95,6 +96,7 @@ import com.example.bumarketplace.MainActivity.Companion.TAG
 //Firebase Database imports:
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.res.painterResource
 import com.google.gson.Gson
 
 
@@ -740,25 +742,67 @@ fun CartScreen() {
 @Composable
 fun SellingScreen(navController: NavController) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp), // Add padding for better spacing
         contentAlignment = Alignment.Center
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text("Selling Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(16.dp))
+            // Placeholder for an empty state image or illustration
+            Image(
+                painter = painterResource(id = R.drawable.logobu), // Replace with your drawable resource
+                contentDescription = "Empty State Illustration",
+                modifier = Modifier
+                    .size(200.dp)
+                    .padding(bottom = 16.dp)
+            )
+
+            // Header Title with enhanced styling
+            Text(
+                text = "Start Selling",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            // Description to guide the user
+            Text(
+                text = "No items listed yet. Tap below to add your first item!",
+                fontSize = 16.sp,
+                color = Color.Gray,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(vertical = 8.dp, horizontal = 24.dp)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // "List an Item" Button with enhanced styling
             Button(
                 onClick = { navController.navigate("full_selling_screen") }, // Navigate to Full Selling Screen
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.padding(16.dp)
+                shape = RoundedCornerShape(16.dp), // Rounded button corners
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
             ) {
-                Text("List an Item", fontSize = 16.sp, color = Color.White)
+                Icon(
+                    imageVector = Icons.Default.Add, // Icon for the button
+                    contentDescription = "Add Icon",
+                    tint = Color.White
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "List an Item",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
             }
         }
     }
 }
+
 
 
 // All Functions from this point on are helper to SellingScreen

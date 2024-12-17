@@ -127,6 +127,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var navController: NavHostController
     private val userNameState = mutableStateOf("Guest")
+    private val userEmailState = mutableStateOf("")
+
     private val profileImageUrlState = mutableStateOf("")
 
 
@@ -222,8 +224,10 @@ class MainActivity : ComponentActivity() {
                         composable("profile") {
                             ProfileScreen(
                                 userName = userNameState.value,
+                                userEmail = userEmailState.value,
                                 profileImageUrl = profileImageUrlState.value,
-                                onLogoutClicked = { logout() } // Pass the logout function here
+                                onLogoutClicked = { logout()
+                                }
                             )
                         }
 
@@ -326,6 +330,29 @@ object FirebaseManager {
             }
             .addOnFailureListener { exception ->
                 Log.e("FirebaseDebug", "Error fetching items: ${exception.message}")
+                onFailure(exception)
+            }
+    }
+
+    fun fetchUserItems(
+        userName: String,
+        onSuccess: (List<Product>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        database.get()
+            .addOnSuccessListener { snapshot ->
+                val userItems = mutableListOf<Product>()
+                for (childSnapshot in snapshot.children) {
+                    val item = childSnapshot.getValue(Product::class.java)
+                    if (item != null && item.seller == userName) {
+                        userItems.add(item)
+                        Log.d("UserItems", "Item: ${item.title} by ${item.seller}")
+                    }
+                }
+                onSuccess(userItems)
+            }
+            .addOnFailureListener { exception ->
+                Log.e("FirebaseDebug", "Error fetching user items: ${exception.message}")
                 onFailure(exception)
             }
     }
@@ -597,13 +624,25 @@ fun NavigationBar(navController: NavController, userNameState: MutableState<Stri
     }
 }
 
-
 @Composable
 fun ProfileScreen(
     userName: String,
+    userEmail: String,
     profileImageUrl: String?,
-    onLogoutClicked: () -> Unit // Pass logout logic here
+    onLogoutClicked: () -> Unit
 ) {
+    val userItems = remember { mutableStateOf<List<Product>>(emptyList()) }
+
+    // Fetch items on initialization or when userName changes
+    LaunchedEffect(userName) {
+        FirebaseManager.fetchUserItems(userName, onSuccess = {
+            userItems.value = it
+        }, onFailure = {
+            // Handle failure if needed
+            Log.e("ProfileScreen", "Failed to fetch items for user $userName")
+        })
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -611,59 +650,36 @@ fun ProfileScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Header Section
-        ProfileHeader(userName = userName, profileImageUrl = profileImageUrl)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Saved Items Section
-        SectionTitle(title = "Saved Items")
-        ListItemRow(items = listOf("Modern Table Lamp", "Vintage Clock"))
-
+        ProfileHeader(userName, profileImageUrl)
         Spacer(modifier = Modifier.height(16.dp))
-
-        // Purchases Section
-        SectionTitle(title = "Purchases")
-        ListItemRow(items = listOf("Leather Wallet", "Wireless Earbuds"))
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Selling Section
-        SectionTitle(title = "Selling")
-        ListItemRow(items = listOf("Vintage Stamps"))
-
-        Spacer(modifier = Modifier.height(32.dp)) // Add some spacing before Logout Button
-
-        // Logout Button at the Bottom
+        ProfileDetail("Email", userEmail)
+        if (userItems.value.isNotEmpty()) {
+            Text("Your Listings", style = MaterialTheme.typography.titleLarge)
+            userItems.value.forEach { product ->
+                Text(product.title, style = MaterialTheme.typography.bodyMedium)
+            }
+        } else {
+            Text("You have no listings yet.", style = MaterialTheme.typography.bodyMedium)
+        }
+        Spacer(modifier = Modifier.height(32.dp))
         Button(
-            onClick = { onLogoutClicked() },
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+            onClick = onLogoutClicked,
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "Logout",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("Logout", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
 
-
-
 @Composable
 fun ProfileHeader(userName: String, profileImageUrl: String?) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (profileImageUrl != null) {
-            // Load profile image using Coil
             Image(
                 painter = rememberAsyncImagePainter(profileImageUrl),
                 contentDescription = "Profile Picture",
@@ -672,7 +688,6 @@ fun ProfileHeader(userName: String, profileImageUrl: String?) {
                     .clip(CircleShape)
             )
         } else {
-            // Default placeholder if no profile image
             Icon(
                 imageVector = Icons.Default.AccountCircle,
                 contentDescription = "Default Profile Picture",
@@ -681,27 +696,25 @@ fun ProfileHeader(userName: String, profileImageUrl: String?) {
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(
-                text = userName,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-            )
-            Text(
-                text = "Member since 2024",
-                style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
-            )
-        }
+        Text(userName, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
     }
 }
 
 @Composable
-fun SectionTitle(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-        modifier = Modifier.padding(vertical = 8.dp)
-    )
+fun ProfileDetail(label: String, value: String) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+        Text(value, style = MaterialTheme.typography.bodyMedium)
+    }
 }
+
+
+
+@Composable
+fun SectionTitle(title: String) {
+    Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(vertical = 8.dp))
+}
+
 
 @Composable
 fun ListItemRow(items: List<String>) {
@@ -727,13 +740,6 @@ fun ListItemRow(items: List<String>) {
 }
 
 
-
-@Composable
-fun ProfileScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Profile Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    }
-}
 
 
 

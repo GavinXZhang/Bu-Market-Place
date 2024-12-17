@@ -134,8 +134,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var firebaseAuth: FirebaseAuth
     private lateinit var navController: NavHostController
     private val userNameState = mutableStateOf("Guest")
-    private val userEmailState = mutableStateOf("example@email.com")
-
+    private val userEmailState = mutableStateOf("guest@email.com")
     private val profileImageUrlState = mutableStateOf("")
 
 
@@ -301,7 +300,6 @@ class MainActivity : ComponentActivity() {
                             Log.d(TAG, "signInWithCredential:success")
                             val user = firebaseAuth.currentUser
                             userNameState.value = user?.displayName ?: "Guest"
-                            userEmailState.value = user?.email ?: "No Email"
                             profileImageUrlState.value = user?.photoUrl?.toString() ?: ""
 
                             val newUser = user?.let {
@@ -360,7 +358,6 @@ object FirebaseManager {
                 onFailure(exception)
             }
     }
-
     fun fetchUserItems(
         userName: String,
         onSuccess: (List<Product>) -> Unit,
@@ -771,7 +768,6 @@ fun NavigationBar(navController: NavController, userNameState: MutableState<Stri
         }
     }
 }
-<<<<<<< HEAD
 
 class CartViewModel : ViewModel() {
     private val _cartItems = mutableStateListOf<CartItem>()
@@ -798,8 +794,7 @@ class CartViewModel : ViewModel() {
         _cartItems.remove(item)
     }
 }
-=======
->>>>>>> 6969b44 (profile fiz)
+
 @Composable
 fun ProfileScreen(
     userName: String,
@@ -951,7 +946,6 @@ fun SectionTitle(title: String) {
     Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.padding(vertical = 8.dp))
 }
 
-
 @Composable
 fun ListItemRow(items: List<String>) {
     LazyRow {
@@ -976,6 +970,13 @@ fun ListItemRow(items: List<String>) {
 }
 
 
+
+@Composable
+fun ProfileScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Profile Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    }
+}
 
 
 

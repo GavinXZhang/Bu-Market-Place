@@ -175,35 +175,41 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 userName = userName,
                                 onLogoutClicked = { logout() },
-
                                 onProductClicked = { product ->
-                                val gson = Gson()
-                                val productJson = gson.toJson(product)
-
-                                navController.navigate("item_details/$productJson")
-                            }
+                                    // Pass parameters explicitly and encode for safety
+                                    navController.navigate(
+                                        "item_details/${Uri.encode(product.title)}/" +
+                                                "${Uri.encode(product.description)}/" +
+                                                "${product.price}/" +
+                                                "${Uri.encode(product.condition)}/" +
+                                                "${product.quantity}/" +
+                                                "${Uri.encode(product.images.firstOrNull() ?: "")}/" +
+                                                "${Uri.encode(product.seller)}"
+                                    )
+                                }
                             )
                         }
-                        composable("item_details/{productJson}") { backStackEntry ->
-                            val productJson = backStackEntry.arguments?.getString("productJson")
-                            val product = productJson?.let { json ->
-                                try {
-                                    Gson().fromJson(json, Product::class.java)
-                                } catch (e: Exception) {
-                                    Log.e("Navigation", "Failed to parse product JSON", e)
-                                    null
-                                }
-                            }
+                        composable("item_details/{title}/{description}/{price}/{condition}/{quantity}/{image}/{seller}") { backStackEntry ->
+                            val title = backStackEntry.arguments?.getString("title") ?: "No Title"
+                            val description = backStackEntry.arguments?.getString("description") ?: "No Description"
+                            val price = backStackEntry.arguments?.getString("price") ?: "0"
+                            val condition = backStackEntry.arguments?.getString("condition") ?: "Unknown"
+                            val quantity = backStackEntry.arguments?.getString("quantity")?.toIntOrNull() ?: 0
+                            val image = backStackEntry.arguments?.getString("image") ?: ""
+                            val seller = backStackEntry.arguments?.getString("seller") ?: "Unknown Seller"
 
-                            if (product != null) {
-                                ItemDetailsScreen(
-                                    product = product,
-                                    onBackClicked = { navController.popBackStack() }
-                                )
-                            } else {
-                                Text("Failed to load product details", color = Color.Red)
-                            }
+                            ItemDetailsScreen(
+                                title = title,
+                                description = description,
+                                price = price,
+                                condition = condition,
+                                quantity = quantity,
+                                images = listOf(image), // Use the first image passed
+                                onBackClicked = { navController.popBackStack() }
+                            )
                         }
+
+
 
                         composable("profile") {
                             ProfileScreen(
@@ -295,39 +301,50 @@ class MainActivity : ComponentActivity() {
 }
 // FirebaseManager - Inside MainActivity.kt but outside of the MainActivity class
 object FirebaseManager {
-    private val database: DatabaseReference by lazy {
-        FirebaseDatabase.getInstance().getReference("items") // Target 'items' node
-    }
+    private val database = FirebaseDatabase.getInstance().getReference("items")
 
-    fun fetchItems(
-        onSuccess: (List<Product>) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        database.get().addOnSuccessListener { snapshot ->
-            val itemsList = mutableListOf<Product>()
-            snapshot.children.forEach { child ->
-                val item = child.getValue(Product::class.java) // Map to Product class
-                item?.let { itemsList.add(it) }
+    fun fetchItems(onSuccess: (List<Product>) -> Unit, onFailure: (Exception) -> Unit) {
+        database.get()
+            .addOnSuccessListener { snapshot ->
+                val itemsList = mutableListOf<Product>()
+                for (childSnapshot in snapshot.children) {
+                    val item = childSnapshot.getValue(Product::class.java)
+                    if (item != null) {
+                        itemsList.add(item)
+                    }
+                }
+                Log.d("FirebaseDebug", "Fetched Items: $itemsList") // Log the fetched items
+                onSuccess(itemsList)
             }
-            onSuccess(itemsList)
-        }.addOnFailureListener { exception ->
-            Log.e("FirebaseManager", "Error fetching items: ${exception.message}")
-            onFailure(exception)
-        }
+            .addOnFailureListener { exception ->
+                Log.e("FirebaseDebug", "Error fetching items: ${exception.message}")
+                onFailure(exception)
+            }
     }
 }
+
+
 
 // ItemDetails ----------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemDetailsScreen(
-    product: Product,
+    title: String = "No Title",
+    description: String = "No Description",
+    price: String = "0.0",
+    condition: String = "Unknown",
+    seller: String = "Unknown Seller",
+    quantity: Int = 0,
+    images: List<String> = emptyList(),
     onBackClicked: () -> Unit
 ) {
+    Log.d("ItemDetailsDebug", "Title: $title, Description: $description, Price: $price")
+    Log.d("ItemDetailsDebug", "Condition: $condition, Quantity: $quantity, Seller: $seller")
+    Log.d("ItemDetailsDebug", "Images: $images")
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(product.title) },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -353,28 +370,31 @@ fun ItemDetailsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // Item Image Carousel
+            // Images Section
             LazyRow {
-                items(product.images) { imageUrl ->
+                items(images) { imageUrl ->
                     Image(
                         painter = rememberAsyncImagePainter(imageUrl),
                         contentDescription = "Product Image",
                         modifier = Modifier
-                            .size(300.dp)
-                            .padding(end = 8.dp)
+                            .size(250.dp)
+                            .padding(8.dp)
                             .clip(RoundedCornerShape(8.dp))
+                            .background(Color.LightGray)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Item Details
-            Text(product.title, fontWeight = FontWeight.Bold, fontSize = 24.sp)
-            Text("Price: $${product.price}", fontSize = 18.sp, color = Color.Gray)
-            Text("Condition: ${product.condition}", fontSize = 16.sp, color = Color.Gray)
+            // Product Details Section
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+            Text("Price: $$price", fontSize = 18.sp, color = Color.Gray)
+            Text("Condition: $condition", fontSize = 16.sp, color = Color.Gray)
+            Text("Quantity Available: $quantity", fontSize = 16.sp, color = Color.Gray)
+
             Spacer(modifier = Modifier.height(8.dp))
-            Text(product.description, fontSize = 16.sp)
+            Text(description, fontSize = 16.sp)
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -382,14 +402,13 @@ fun ItemDetailsScreen(
             Divider(color = Color.Gray)
             Spacer(modifier = Modifier.height(16.dp))
             Text("Seller Contact", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            Text("Seller: ${product.seller}", fontSize = 16.sp)
+            Text("Seller: $seller", fontSize = 16.sp)
         }
     }
 }
 
+
 // ItemDetails ----------------------------------------------------------------
-
-
 
 
 @Composable
@@ -438,18 +457,26 @@ fun HomeScreen(
         }
 
         // Product List
+        // Use LazyColumn as the primary scrollable container
         LazyColumn(
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp) // Adds spacing between items
         ) {
             items(itemsState.value) { product ->
                 ProductItem(product = product) {
                     onProductClicked(product)
+                    Log.d("ProductDebug", "Product: $product")
+
                 }
             }
         }
 
     }
 }
+
+
 
 // Helper Composable for Filter Buttons
 @Composable
@@ -500,15 +527,17 @@ fun ProductItem(product: Product, onClick: () -> Unit) {
 
 // Product Data Class
 data class Product(
-    val title: String = "",
-    val category: String = "",
-    val condition: String = "",
-    val description: String = "",
+    val title: String = "No Title",
+    val description: String = "No Description",
     val price: Int = 0,
-    val quantity: Int = 1,
-    val seller: String = "",
-    val images: List<String> = emptyList() // Add the images property as a list of strings
+    val condition: String = "Unknown",
+    val quantity: Int = 0,
+    val images: List<String> = emptyList(),
+    val seller: String = "Unknown Seller",
+    val category: String = "" // Add this field to match Firebase structure
+
 )
+
 
 
 // class for Navigation Items

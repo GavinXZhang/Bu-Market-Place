@@ -114,7 +114,8 @@ data class MarketItem(
     val images: List<String>,
     val category: String,
     val condition: String,
-    val quantity: Int
+    val quantity: Int,
+    val seller: String
 )
 
 
@@ -870,6 +871,9 @@ fun FullSellingScreen(navController: NavController) {
 
         return true
     }
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val sellerName = currentUser?.displayName ?: "Unknown Seller"
+
 
     Column(
         modifier = Modifier
@@ -952,6 +956,7 @@ fun FullSellingScreen(navController: NavController) {
                         category = selectedCategory.value,
                         condition = selectedCondition.value,
                         quantity = itemQuantity.value.toInt(),
+                        seller = sellerName
                     )
                     addItemToDatabase(newItem)
                     // Navigate back to the original selling screen

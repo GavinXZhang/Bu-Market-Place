@@ -120,13 +120,13 @@ class MainActivity : ComponentActivity() {
                         // Show the bottom navigation bar only when not on the login screen
                         val currentDestination = navController.currentBackStackEntryAsState().value?.destination?.route
                         if (currentDestination != "login") {
-                            NavigationBar(navController = navController)
+                            NavigationBar(navController = navController, userNameState = userNameState)
                         }
                     }
                 ) { paddingValues ->
                     NavHost(
                         navController = navController,
-                        startDestination = if (firebaseAuth.currentUser != null) "home/{userName}" else "login"
+                        startDestination = if (firebaseAuth.currentUser != null) "home/{userNameState.value}" else "login"
                     ) {
                         composable("login") {
                             LoginScreen(
@@ -286,69 +286,45 @@ fun BottomNavigationGraph(
 
 
 @Composable
-fun NavigationBar(navController: NavController) {
-    // Icons for tabs
+fun NavigationBar(navController: NavController, userNameState: MutableState<String>) {
     val tabItems = listOf(
-        BottomNavigationItem(
-            title = "Home",
-            selectedIcon = Icons.Filled.Home,
-            unselectedIcon = Icons.Outlined.Home
-        ),
-
-        BottomNavigationItem(
-            title = "Profile",
-            selectedIcon = Icons.Filled.AccountCircle,
-            unselectedIcon = Icons.Outlined.AccountCircle
-        ),
-
-        BottomNavigationItem(
-            title = "Search",
-            selectedIcon = Icons.Filled.Search,
-            unselectedIcon = Icons.Outlined.Search
-        ),
-
-        BottomNavigationItem(
-            title = "Inbox",
-            selectedIcon = Icons.Filled.Inbox,
-            unselectedIcon = Icons.Outlined.Inbox
-        ),
-
-        BottomNavigationItem(
-            title = "Selling",
-            selectedIcon = Icons.Filled.Sell,
-            unselectedIcon = Icons.Outlined.Sell
-        )
+        BottomNavigationItem("Home", Icons.Filled.Home, Icons.Outlined.Home),
+        BottomNavigationItem("Profile", Icons.Filled.AccountCircle, Icons.Outlined.AccountCircle),
+        BottomNavigationItem("Search", Icons.Filled.Search, Icons.Outlined.Search),
+        BottomNavigationItem("Inbox", Icons.Filled.Inbox, Icons.Outlined.Inbox),
+        BottomNavigationItem("Selling", Icons.Filled.Sell, Icons.Outlined.Sell)
     )
-    // Tab Navigation
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+
     val routes = listOf("home", "profile", "search", "inbox", "selling")
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
 
     androidx.compose.material3.NavigationBar {
-        tabItems.forEachIndexed { index, bottomNavigationItem ->
+        tabItems.forEachIndexed { index, item ->
             NavigationBarItem(
                 selected = index == selectedTabIndex,
                 onClick = {
                     selectedTabIndex = index
-                    navController.navigate(routes[index])
+                    if (routes[index] == "home") {
+                        navController.navigate("home/${userNameState.value}") {
+                            popUpTo("home") { inclusive = true } // Avoid duplicate stacks
+                        }
+                    } else {
+                        navController.navigate(routes[index])
+                    }
                 },
-                label = {
-                    Text(text = bottomNavigationItem.title)
-                },
+                label = { Text(item.title) },
                 icon = {
                     Icon(
-                        imageVector = if (index == selectedTabIndex) {
-                            bottomNavigationItem.selectedIcon
-                        } else {
-                            bottomNavigationItem.unselectedIcon
-                        },
-                        contentDescription = bottomNavigationItem.title
+                        imageVector = if (index == selectedTabIndex) item.selectedIcon else item.unselectedIcon,
+                        contentDescription = item.title
                     )
-                },
-                alwaysShowLabel = true
+                }
             )
         }
     }
 }
+
+
 
 @Composable
 fun HomeScreen(userName: String, onLogoutClicked: () -> Unit) {

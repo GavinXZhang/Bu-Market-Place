@@ -40,13 +40,9 @@ import com.airbnb.lottie.compose.LottieConstants
 
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Inbox
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sell
 
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -55,7 +51,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.border
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.PointerEventType
-// import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 import com.google.firebase.database.FirebaseDatabase
@@ -193,8 +190,8 @@ class MainActivity : ComponentActivity() {
 
 
 
-                        composable("search") { SearchScreen() }
-                        composable("inbox") { InboxScreen() }
+
+                        composable("cart") { CartScreen() }
                         composable("selling") { SellingScreen(navController) }
                         composable("full_selling_screen") { FullSellingScreen(navController) }
                     }
@@ -430,8 +427,7 @@ fun BottomNavigationGraph(
         ) {
             composable("home") { HomeScreen(userName = "Gavin", onLogoutClicked = {}) }
             composable("profile") { ProfileScreen() }
-            composable("search") { SearchScreen() }
-            composable("inbox") { InboxScreen() }
+            composable("cart") { CartScreen() }
             composable("selling") { SellingScreen(navController) }
         }
     }
@@ -443,13 +439,13 @@ fun BottomNavigationGraph(
 fun NavigationBar(navController: NavController, userNameState: MutableState<String>) {
     val tabItems = listOf(
         BottomNavigationItem("Home", Icons.Filled.Home, Icons.Outlined.Home),
-        BottomNavigationItem("Profile", Icons.Filled.AccountCircle, Icons.Outlined.AccountCircle),
-        BottomNavigationItem("Search", Icons.Filled.Search, Icons.Outlined.Search),
-        BottomNavigationItem("Inbox", Icons.Filled.Inbox, Icons.Outlined.Inbox),
-        BottomNavigationItem("Selling", Icons.Filled.Sell, Icons.Outlined.Sell)
+        BottomNavigationItem("Selling", Icons.Filled.Sell, Icons.Outlined.Sell),
+        BottomNavigationItem("Cart", Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart),
+        BottomNavigationItem("Profile", Icons.Filled.AccountCircle, Icons.Outlined.AccountCircle)
+
     )
 
-    val routes = listOf("home", "profile", "search", "inbox", "selling")
+    val routes = listOf("home", "selling", "cart", "profile")
     var selectedTabIndex by remember { mutableIntStateOf(0) }
 
     androidx.compose.material3.NavigationBar {
@@ -616,17 +612,12 @@ fun ProfileScreen() {
     }
 }
 
-@Composable
-fun SearchScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Search Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    }
-}
+
 
 @Composable
-fun InboxScreen() {
+fun CartScreen() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Inbox Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text("Cart Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
     }
 }
 

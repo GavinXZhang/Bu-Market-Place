@@ -99,6 +99,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.res.painterResource
 import com.google.gson.Gson
 
+//for the cart:
+import androidx.compose.runtime.mutableStateListOf
+import androidx.lifecycle.ViewModel
+
+import androidx.compose.material.icons.filled.Delete
+
+
 
 data class User(
     val userId: String,
@@ -148,6 +155,7 @@ class MainActivity : ComponentActivity() {
             .requestEmail()
             .build()
 
+
         googleSignInClient = GoogleSignIn.getClient(this, gso)
         firebaseAuth = FirebaseAuth.getInstance()
         database = FirebaseDatabase.getInstance().getReference()
@@ -164,6 +172,8 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { paddingValues ->
+                    val cartViewModel: CartViewModel = viewModel() // Shared ViewModel
+
                     NavHost(
                         navController = navController,
                         startDestination = if (firebaseAuth.currentUser != null) "home/{userNameState.value}" else "login"
@@ -214,7 +224,9 @@ class MainActivity : ComponentActivity() {
                                 quantity = quantity,
                                 images = listOf(image), // Use the first image passed
                                 onBackClicked = { navController.popBackStack() },
-                                seller = seller
+                                seller = seller,
+                                cartViewModel = cartViewModel // Pass cartViewModel here
+
                             )
                         }
 
@@ -232,7 +244,9 @@ class MainActivity : ComponentActivity() {
 
 
 
-                        composable("cart") { CartScreen() }
+                        composable("cart") {
+                            CartScreen(cartViewModel = cartViewModel)
+                        }
                         composable("selling") { SellingScreen(navController) }
                         composable("full_selling_screen") { FullSellingScreen(navController) }
                     }
@@ -345,7 +359,9 @@ fun ItemDetailsScreen(
     seller: String = "Unknown Seller",
     quantity: Int = 0,
     images: List<String> = emptyList(),
-    onBackClicked: () -> Unit
+    onBackClicked: () -> Unit,
+    cartViewModel: CartViewModel // ViewModel to manage cart
+
 ) {
     Log.d("ItemDetailsDebug", "Title: $title, Description: $description, Price: $price")
     Log.d("ItemDetailsDebug", "Condition: $condition, Quantity: $quantity, Seller: $seller")
@@ -412,11 +428,126 @@ fun ItemDetailsScreen(
             Spacer(modifier = Modifier.height(16.dp))
             Text("Seller Contact", fontWeight = FontWeight.Bold, fontSize = 20.sp)
             Text("Seller: $seller", fontSize = 16.sp)
+            Button(
+                onClick = {
+                    val product = Product(
+                        title = title,
+                        description = description,
+                        price = price.toIntOrNull() ?: 0,
+                        condition = condition,
+                        quantity = quantity,
+                        images = images,
+                        seller = seller
+                    )
+                    cartViewModel.addToCart(product)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Add to Cart")
+            }
+        }
+    }
+}
+
+//CartScreen ------------------------------------------------------------------
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CartScreen(cartViewModel: CartViewModel) {
+    val cartItems = cartViewModel.cartItems // Observe cartItems state
+
+    Scaffold(
+        topBar = { TopAppBar(title = { Text("Your Cart") }) }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            if (cartItems.isEmpty()) {
+                // Placeholder when cart is empty
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Your cart is empty",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                // Wrap the LazyColumn and the Subtotal & Checkout Button in a Column
+                Column(
+                    modifier = Modifier.weight(1f) // This ensures the Column takes available space
+                ) {
+                    // Display cart items
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f) // LazyColumn takes available space within Column
+                    ) {
+                        items(cartItems) { cartItem ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp)
+                                    .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+                                    .padding(8.dp)
+                            ) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(cartItem.product.images.firstOrNull()
+                                        ?: "https://via.placeholder.com/150"),
+                                    contentDescription = "Product Image",
+                                    modifier = Modifier.size(64.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(cartItem.product.title, fontWeight = FontWeight.Bold)
+                                    Text("Quantity: ${cartItem.quantity}")
+                                    Text("Price: $${cartItem.product.price}")
+                                }
+                                Spacer(Modifier.weight(1f))
+                                IconButton(onClick = { cartViewModel.removeFromCart(cartItem) }) {
+                                    Icon(Icons.Filled.Delete, contentDescription = "Remove")
+                                }
+                            }
+                        }
+                    }
+
+                    // Subtotal and Checkout Button
+                    Column(
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Divider()
+                        Text(
+                            "Subtotal: $${cartViewModel.calculateTotal()}",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+
+                        Button(
+                            onClick = { /* Handle checkout logic */ },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B0000))
+                        ) {
+                            Text("Checkout", fontSize = 18.sp, color = Color.White)
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 
+
+//CartScreen -------------------------------------------------------------------------
 // ItemDetails ----------------------------------------------------------------
 
 @Composable
@@ -546,7 +677,10 @@ data class Product(
     val category: String = "" // Add this field to match Firebase structure
 
 )
-
+data class CartItem(
+    val product: Product, // Product object from your existing code
+    var quantity: Int = 1
+)
 
 
 // class for Navigation Items
@@ -599,7 +733,31 @@ fun NavigationBar(navController: NavController, userNameState: MutableState<Stri
     }
 }
 
+class CartViewModel : ViewModel() {
+    private val _cartItems = mutableStateListOf<CartItem>()
+    val cartItems: List<CartItem> get() = _cartItems
 
+    // Add or update a product in the cart
+    fun addToCart(product: Product) {
+        Log.d("CartDebug", "Adding to cart: $product")
+        val existingItem = _cartItems.find { it.product.title == product.title }
+        if (existingItem != null) {
+            existingItem.quantity++
+        } else {
+            _cartItems.add(CartItem(product, 1))
+        }
+    }
+
+    // Calculate the total price
+    fun calculateTotal(): Int {
+        return _cartItems.sumOf { it.product.price * it.quantity }
+    }
+
+    // Remove item from cart
+    fun removeFromCart(item: CartItem) {
+        _cartItems.remove(item)
+    }
+}
 @Composable
 fun ProfileScreen(
     userName: String,
@@ -739,12 +897,7 @@ fun ProfileScreen() {
 
 
 
-@Composable
-fun CartScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Cart Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    }
-}
+
 
 @Composable
 fun SellingScreen(navController: NavController) {

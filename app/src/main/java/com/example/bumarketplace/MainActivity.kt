@@ -41,13 +41,9 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Inbox
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sell
 
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Inbox
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -56,7 +52,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.border
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.PointerEventType
-// import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 import com.google.firebase.database.FirebaseDatabase
@@ -217,8 +214,8 @@ class MainActivity : ComponentActivity() {
 
 
 
-                        composable("search") { SearchScreen() }
-                        composable("inbox") { InboxScreen() }
+
+                        composable("cart") { CartScreen() }
                         composable("selling") { SellingScreen(navController) }
                         composable("full_selling_screen") { FullSellingScreen(navController) }
                     }
@@ -511,17 +508,20 @@ data class BottomNavigationItem(
 )
 
 
+
+
+
 @Composable
 fun NavigationBar(navController: NavController, userNameState: MutableState<String>) {
     val tabItems = listOf(
         BottomNavigationItem("Home", Icons.Filled.Home, Icons.Outlined.Home),
-        BottomNavigationItem("Profile", Icons.Filled.AccountCircle, Icons.Outlined.AccountCircle),
-        BottomNavigationItem("Search", Icons.Filled.Search, Icons.Outlined.Search),
-        BottomNavigationItem("Inbox", Icons.Filled.Inbox, Icons.Outlined.Inbox),
-        BottomNavigationItem("Selling", Icons.Filled.Sell, Icons.Outlined.Sell)
+        BottomNavigationItem("Selling", Icons.Filled.Sell, Icons.Outlined.Sell),
+        BottomNavigationItem("Cart", Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart),
+        BottomNavigationItem("Profile", Icons.Filled.AccountCircle, Icons.Outlined.AccountCircle)
+
     )
 
-    val routes = listOf("home", "profile", "search", "inbox", "selling")
+    val routes = listOf("home", "selling", "cart", "profile")
     var selectedTabIndex by remember { mutableIntStateOf(0) }
 
     androidx.compose.material3.NavigationBar {
@@ -688,17 +688,12 @@ fun ProfileScreen() {
     }
 }
 
-@Composable
-fun SearchScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Search Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    }
-}
+
 
 @Composable
-fun InboxScreen() {
+fun CartScreen() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Inbox Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text("Cart Screen", fontSize = 24.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -1569,42 +1564,18 @@ fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Text("Login to BU Marketplace", fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Discover BUMarket",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Connect with BU students to buy and sell",
-                    fontSize = 16.sp,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(32.dp))
-
                 Button(
-                    onClick = { onGoogleSignInClicked() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(32.dp),
+                    onClick = onGoogleSignInClicked,
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF570303))
                 ) {
-                    Text(
-                        text = "Sign-Up with BU Google",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontFamily = FontFamily.SansSerif,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Sign in with Google", color = Color.White)
                 }
             }
         }
     )
 }
-
 
 
 @Preview(showBackground = true)

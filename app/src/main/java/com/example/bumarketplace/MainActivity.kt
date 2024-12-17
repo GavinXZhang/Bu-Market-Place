@@ -4,6 +4,8 @@ import androidx.compose.ui.draw.clip
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -50,7 +52,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-
+import androidx.compose.foundation.border
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventType
 // import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.navigation.compose.currentBackStackEntryAsState
 
@@ -143,9 +147,11 @@ class MainActivity : ComponentActivity() {
                         composable("profile") {
                             ProfileScreen(
                                 userName = userNameState.value,
-                                profileImageUrl = profileImageUrlState.value
+                                profileImageUrl = profileImageUrlState.value,
+                                onLogoutClicked = { logout() } // Pass the logout function here
                             )
                         }
+
 
 
 
@@ -208,54 +214,139 @@ class MainActivity : ComponentActivity() {
 
 
 @Composable
-fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        content = { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Discover BUMarket",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Connect with BU students to buy and sell",
-                    fontSize = 16.sp,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(modifier = Modifier.height(32.dp))
+fun HomeScreen(userName: String, onLogoutClicked: () -> Unit) {
+    // Example Product List
+    val productList = listOf(
+        Product(
+            title = "Vintage Record Player",
+            price = "$120",
+            description = "A classic piece for music lovers, complete with vinyl collection.",
+            imageUrl = "https://via.placeholder.com/150"
+        ),
+        Product(
+            title = "Electric Guitar",
+            price = "$300",
+            description = "Perfect for beginners and professionals alike, includes amp.",
+            imageUrl = "https://via.placeholder.com/150"
+        ),
+        Product(
+            title = "DSLR Camera",
+            price = "$450",
+            description = "Capture stunning photos with this high-quality camera, includes lenses.",
+            imageUrl = "https://via.placeholder.com/150"
+        )
+    )
 
-                Button(
-                    onClick = { onGoogleSignInClicked() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(32.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF570303))
-                ) {
-                    Text(
-                        text = "Sign-Up with BU Google",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontFamily = FontFamily.SansSerif,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Search Bar
+        OutlinedTextField(
+            value = "",
+            onValueChange = {},
+            placeholder = { Text("Search...") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        )
+
+        // Filter Buttons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            FilterButton("All Categories")
+            FilterButton("Sort")
+            FilterButton("New Listing")
+        }
+
+        // Product List
+        LazyColumn(
+            modifier = Modifier.padding(8.dp)
+        ) {
+            items(productList) { product ->
+                ProductItem(product = product) // Use ProductItem here
             }
         }
-    )
+    }
 }
 
+// Helper Composable for Filter Buttons
+@Composable
+fun FilterButton(text: String) {
+    Button(
+        onClick = {},
+        shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF570303))
+    ) {
+        Text(text = text, color = Color.White)
+    }
+}
+
+// Product Item Composable
+@Composable
+fun ProductItem(product: Product) {
+    var isHovered by remember { mutableStateOf(false) }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .background(
+                if (isHovered) Color(0xFFEDEDED) else Color.White,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        isHovered = event.type == PointerEventType.Enter
+                    }
+                }
+            }
+            .clip(RoundedCornerShape(12.dp))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Product Image
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.LightGray)
+            ) {
+                Image(
+                    painter = rememberAsyncImagePainter(product.imageUrl),
+                    contentDescription = product.title,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            // Product Description
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp)
+            ) {
+                Text(product.title, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text(product.price, fontSize = 16.sp, color = Color.Gray)
+                Text(product.description, fontSize = 14.sp, maxLines = 2)
+            }
+        }
+    }
+}
+
+
+// Product Data Class
+data class Product(
+    val title: String,
+    val price: String,
+    val description: String,
+    val imageUrl: String
+)
 
 // class for Navigation Items
 data class BottomNavigationItem(
@@ -325,51 +416,60 @@ fun NavigationBar(navController: NavController, userNameState: MutableState<Stri
 }
 
 
-
 @Composable
-fun HomeScreen(userName: String, onLogoutClicked: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Welcome, $userName!",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = onLogoutClicked,
-            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-        ) {
-            Text(text = "Logout", color = Color.White)
-        }
-    }
-}
-
-@Composable
-fun ProfileScreen(userName: String, profileImageUrl: String?) {
+fun ProfileScreen(
+    userName: String,
+    profileImageUrl: String?,
+    onLogoutClicked: () -> Unit // Pass logout logic here
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Header Section
         ProfileHeader(userName = userName, profileImageUrl = profileImageUrl)
         Spacer(modifier = Modifier.height(24.dp))
+
+        // Saved Items Section
         SectionTitle(title = "Saved Items")
         ListItemRow(items = listOf("Modern Table Lamp", "Vintage Clock"))
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Purchases Section
         SectionTitle(title = "Purchases")
         ListItemRow(items = listOf("Leather Wallet", "Wireless Earbuds"))
 
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Selling Section
         SectionTitle(title = "Selling")
         ListItemRow(items = listOf("Vintage Stamps"))
+
+        Spacer(modifier = Modifier.height(32.dp)) // Add some spacing before Logout Button
+
+        // Logout Button at the Bottom
+        Button(
+            onClick = { onLogoutClicked() },
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        ) {
+            Text(
+                text = "Logout",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
+
+
 
 
 @Composable
@@ -1296,6 +1396,31 @@ fun formatExpiryDateWithCaret(input: TextFieldValue): TextFieldValue {
 
 
 
+@Composable
+fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        content = { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Login to BU Marketplace", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = onGoogleSignInClicked,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF570303))
+                ) {
+                    Text("Sign in with Google", color = Color.White)
+                }
+            }
+        }
+    )
+}
 
 
 @Preview(showBackground = true)

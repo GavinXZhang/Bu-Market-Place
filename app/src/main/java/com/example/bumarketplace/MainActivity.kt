@@ -97,6 +97,7 @@ import com.example.bumarketplace.MainActivity.Companion.TAG
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.res.painterResource
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.google.gson.Gson
 
 
@@ -1723,8 +1724,17 @@ fun formatExpiryDateWithCaret(input: TextFieldValue): TextFieldValue {
 
 
 
+
+
 @Composable
 fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
+    // Load the Lottie animation
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.firstpageanimation))
+    val progress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = LottieConstants.IterateForever
+    )
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         content = { paddingValues ->
@@ -1736,13 +1746,45 @@ fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Login to BU Marketplace", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                // Add Lottie Animation Here
+                LottieAnimation(
+                    composition = composition,
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                )
+
                 Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Discover BUMarket",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Connect with BU students to buy and sell",
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+
                 Button(
-                    onClick = onGoogleSignInClicked,
+                    onClick = { onGoogleSignInClicked() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(32.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF570303))
                 ) {
-                    Text("Sign in with Google", color = Color.White)
+                    Text(
+                        text = "Sign-Up with BU Google",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily.SansSerif,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }

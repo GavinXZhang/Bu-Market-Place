@@ -58,6 +58,8 @@ import androidx.compose.ui.input.pointer.PointerEventType
 // import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.navigation.compose.currentBackStackEntryAsState
 
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.DatabaseReference
 
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -90,6 +92,35 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
+import com.example.bumarketplace.MainActivity.Companion.TAG
+
+
+data class User(
+    val userId: String,
+    val name: String,
+    val email: String,
+    val profileImageUrl: String? = null
+)
+
+data class MarketItem(
+    val title: String,
+    val description: String,
+    val price: Double,
+    val images: List<String>,
+    val category: String,
+    val condition: String,
+    val quantity: Int
+)
+
+
+object FirebaseManager {
+    val firebaseAuth: FirebaseAuth by lazy {
+        FirebaseAuth.getInstance()
+    }
+    val database: DatabaseReference by lazy {
+        FirebaseDatabase.getInstance().getReference()
+    }
+}
 
 
 class MainActivity : ComponentActivity() {
@@ -99,6 +130,11 @@ class MainActivity : ComponentActivity() {
     private lateinit var navController: NavHostController
     private val userNameState = mutableStateOf("Guest")
     private val profileImageUrlState = mutableStateOf("")
+
+
+    private lateinit var database: DatabaseReference
+
+
     companion object {
         private const val RC_SIGN_IN = 9001
         private const val TAG = "GoogleSignIn"
@@ -107,6 +143,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        database = FirebaseDatabase.getInstance().getReference()
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(getString(R.string.default_web_client_id))
@@ -115,6 +152,7 @@ class MainActivity : ComponentActivity() {
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
         firebaseAuth = FirebaseAuth.getInstance()
+        database = FirebaseDatabase.getInstance().getReference()
 
         setContent {
             navController = rememberNavController() // Initialize navController
@@ -165,6 +203,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun addUserToDatabase(user: User) {
+        database.child("users").child(user.userId).setValue(user)
+            .addOnSuccessListener {
+                Log.d(TAG, "User successfully added to database.")
+            }
+            .addOnFailureListener {
+                Log.w(TAG, "Failed to add user to database.", it)
+            }
+    }
+
+
+
+
     private fun signInWithGoogle() {
         val signInIntent = googleSignInClient.signInIntent
         startActivityForResult(signInIntent, RC_SIGN_IN)
@@ -184,6 +235,18 @@ class MainActivity : ComponentActivity() {
                             val user = firebaseAuth.currentUser
                             userNameState.value = user?.displayName ?: "Guest"
                             profileImageUrlState.value = user?.photoUrl?.toString() ?: ""
+
+                            val newUser = user?.let {
+                                User(
+                                    userId = it.uid,
+                                    name = user.displayName ?: "N/A",
+                                    email = user.email ?: "N/A",
+                                    profileImageUrl = user.photoUrl.toString()
+                                )
+                            }
+                            if (newUser != null) {
+                                addUserToDatabase(newUser)
+                            }
 
                             // Correct navigation to match the route
                             navController.navigate("home/${userNameState.value}")
@@ -725,6 +788,17 @@ fun FullSellingScreen(navController: NavController) {
                     println("CVV: ${cvv.value}")
 
                     message = "Success! Listing is ready."
+
+                    val newItem = MarketItem(
+                        title = titleText.value,
+                        description = description.value,
+                        price = price.value.toDouble(),
+                        images = selectedImageUris.value.map { it.toString() }, // Assuming URIs can be converted to strings
+                        category = selectedCategory.value,
+                        condition = selectedCondition.value,
+                        quantity = itemQuantity.value.toInt(),
+                    )
+                    addItemToDatabase(newItem)
                     // Navigate back to the original selling screen
                     navController.popBackStack()
 
@@ -737,6 +811,20 @@ fun FullSellingScreen(navController: NavController) {
             Text("List your item")
         }
     }
+}
+
+fun addItemToDatabase(item: MarketItem) {
+    val database = FirebaseDatabase.getInstance().getReference()
+
+    val TAG = "MainActivity"
+
+    database.child("items").push().setValue(item)
+        .addOnSuccessListener {
+            Log.d(TAG, "Item successfully added to database.")
+        }
+        .addOnFailureListener {
+            Log.w(TAG, "Failed to add item to database.", it)
+        }
 }
 
 

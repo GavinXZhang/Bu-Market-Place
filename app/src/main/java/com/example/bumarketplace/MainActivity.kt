@@ -104,7 +104,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 
 import androidx.compose.material.icons.filled.Delete
-
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
 
 
 data class User(
@@ -1882,26 +1882,76 @@ fun formatExpiryDateWithCaret(input: TextFieldValue): TextFieldValue {
 
 
 
+
 @Composable
 fun LoginScreen(onGoogleSignInClicked: () -> Unit) {
+    // Load the Lottie animation from the 'raw' resources
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.firstpageanimation))
+
+    // Create an animation state that continuously animates the Lottie composition
+    val progress by animateLottieCompositionAsState(
+        composition = composition, // Reference to the loaded animation
+        iterations = LottieConstants.IterateForever // Loop the animation forever
+    )
+
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        content = { paddingValues ->
+        modifier = Modifier.fillMaxSize(), // Fill the entire screen size
+        content = { paddingValues -> // Handles padding from the Scaffold's content
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxSize() // Make the column fill the available screen space
+                    .padding(paddingValues) // Add padding based on Scaffold's content
+                    .padding(16.dp), // Add additional padding of 16dp
+                verticalArrangement = Arrangement.Center, // Center items vertically
+                horizontalAlignment = Alignment.CenterHorizontally // Center items horizontally
             ) {
-                Text("Login to BU Marketplace", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(16.dp))
+                // Add the Lottie animation component
+                LottieAnimation(
+                    composition = composition, // The Lottie composition to play
+                    progress = { progress }, // Progress of the animation
+                    modifier = Modifier
+                        .fillMaxWidth() // Make the animation fill the available width
+                        .height(200.dp) // Set the height of the animation
+                )
+
+                Spacer(modifier = Modifier.height(16.dp)) // Add space between components
+
+                // Add a title text
+                Text(
+                    text = "Discover BUMarket", // Text to display
+                    fontSize = 24.sp, // Font size in scalable pixels
+                    fontWeight = FontWeight.Bold, // Make the text bold
+                    textAlign = TextAlign.Center // Center-align the text
+                )
+
+                Spacer(modifier = Modifier.height(8.dp)) // Add space between text components
+
+                // Add a subtitle text
+                Text(
+                    text = "Connect with BU students to buy and sell", // Subtitle text
+                    fontSize = 16.sp, // Font size
+                    textAlign = TextAlign.Center // Center-align the text
+                )
+
+                Spacer(modifier = Modifier.height(32.dp)) // Add more space
+
+                // Add a sign-up button
                 Button(
-                    onClick = onGoogleSignInClicked,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF570303))
+                    onClick = { onGoogleSignInClicked() }, // Handle button click
+                    modifier = Modifier
+                        .fillMaxWidth() // Make the button fill the available width
+                        .height(56.dp), // Set the height of the button
+                    shape = RoundedCornerShape(32.dp), // Round the button's corners
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF570303)) // Set the button's color
                 ) {
-                    Text("Sign in with Google", color = Color.White)
+                    // Text displayed on the button
+                    Text(
+                        text = "Sign-Up with BU Google", // Button label
+                        color = Color.White, // Set the text color to white
+                        fontSize = 16.sp, // Font size
+                        fontFamily = FontFamily.SansSerif, // Use a sans-serif font
+                        fontWeight = FontWeight.Bold // Make the text bold
+                    )
                 }
             }
         }

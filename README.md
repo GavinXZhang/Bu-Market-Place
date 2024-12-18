@@ -123,3 +123,6 @@ Abdul-pste architected the application’s back-end infrastructure and database 
 
 ### License
 This project is developed as part of the **Boston University CS501 Final Project** and is subject to BU academic guidelines.
+
+### Assets and Presentation
+Last Presentation for this project: https://docs.google.com/presentation/d/1Mfi6qC7S97VOx6a49Fidfni1VdfLTOjWVbxh1Nmyy5Y/edit?usp=sharing
